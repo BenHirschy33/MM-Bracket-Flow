@@ -22,6 +22,7 @@ class Team:
     def_to_pct: Optional[float] = None     # Defensive Turnover %
     sos: Optional[float] = None            # Strength of Schedule (e.g., KenPom SOS rating)
     momentum: Optional[float] = None       # Win % over the last 10 games
+    trb_pct: Optional[float] = None        # Total Rebound Percentage
     
     intuition_score: float = 0.0  # The 'Hirschy Factor' (-10 to +10)
     

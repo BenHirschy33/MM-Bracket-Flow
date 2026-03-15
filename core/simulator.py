@@ -61,6 +61,12 @@ class SimulatorEngine:
             b_to_margin = team_b.def_to_pct - team_b.off_to_pct
             to_advantage = (a_to_margin - b_to_margin) * 0.002
             final_probability += to_advantage * self.weights.turnover_matchup_weight
+            
+        # Rebounding Advantage (TRB% > 50 means they get more than half of all available rebounds)
+        if team_a.trb_pct is not None and team_b.trb_pct is not None:
+            # Baseline is 50.0%. We subtract 50 to see true margins, though direct subtraction also works.
+            reb_advantage = (team_a.trb_pct - team_b.trb_pct) * 0.003
+            final_probability += reb_advantage * self.weights.rebounding_matchup_weight
         
         # SOS & Momentum
         if team_a.sos is not None and team_b.sos is not None:
