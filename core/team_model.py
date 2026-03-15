@@ -34,6 +34,6 @@ class Team:
         Formula: AdjO^11.5 / (AdjO^11.5 + AdjD^11.5)
         """
         exponent = 11.5
-        adj_o_exp = self.off_efficiency ** exponent
-        adj_d_exp = self.def_efficiency ** exponent
+        adj_o_exp = (self.off_efficiency or 100.0) ** exponent
+        adj_d_exp = (self.def_efficiency or 100.0) ** exponent
         return adj_o_exp / (adj_o_exp + adj_d_exp)

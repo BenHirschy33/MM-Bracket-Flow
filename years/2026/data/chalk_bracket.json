@@ -1,18 +1,26 @@
 {
   "name": "MM-Bracket-Flow 2026 - Chalk Prediction",
-  "seeds": {
-    "Duke": 1,
-    "Michigan": 1,
-    "Arizona": 1,
-    "Florida": 1,
-    "Connecticut": 2,
-    "Purdue": 2,
-    "Houston": 2,
-    "North Carolina": 2,
-    "Tennessee": 3,
-    "Iowa St.": 3,
-    "Baylor": 3,
-    "Marquette": 3
+  "regions": {
+    "East": {
+      "1": "Duke",
+      "2": "Connecticut",
+      "3": "Tennessee"
+    },
+    "West": {
+      "1": "Michigan",
+      "2": "Purdue",
+      "3": "Iowa St."
+    },
+    "South": {
+      "1": "Arizona",
+      "2": "Houston",
+      "3": "Baylor"
+    },
+    "Midwest": {
+      "1": "Florida",
+      "2": "North Carolina",
+      "3": "Marquette"
+    }
   },
   "notes": "Standard engine simulation."
 }

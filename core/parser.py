@@ -32,7 +32,7 @@ def load_teams(csv_filepath: str | Path) -> Dict[str, Team]:
             
             team = Team(
                 name=name,
-                seed=int(safe_float(row.get("Seed", 16))),
+                seed=int(safe_float(row.get("Seed", 16)) or 16),
                 off_efficiency=safe_float(row.get("AdjO", 100.0)),
                 def_efficiency=safe_float(row.get("AdjD", 100.0)),
                 off_ppg=safe_float(row.get("Off_PPG", 70.0)),

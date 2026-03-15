@@ -32,7 +32,9 @@ class SimulatorEngine:
         
         # Step 2: Advanced Metric Modifiers
         # Defense Premium (Boosts the team with the better defense)
-        def_delta = team_b.def_efficiency - team_a.def_efficiency # lower def_efficiency is better
+        def_b = team_b.def_efficiency or 100.0
+        def_a = team_a.def_efficiency or 100.0
+        def_delta = def_b - def_a # lower def_efficiency is better
         defense_bonus = (def_delta * 0.001) * self.weights.defense_premium
         final_probability += defense_bonus
         
