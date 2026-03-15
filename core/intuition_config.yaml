@@ -1,0 +1,20 @@
+# MM-Bracket-Flow: The "Hirschy Factor" Intuition Engine
+#
+# Provide a "Human Intuition Score" between -10 and +10 for any team.
+# This score serves as a weighted multiplier alongside KenPom and NET stats
+# during the simulation.
+#
+# Examples:
+#   Duke: 5 (Strong feeling they'll overperform)
+#   Arizona: -3 (Suspect they might choke)
+
+2026_season:
+  Duke: 0
+  Michigan: 0
+  Arizona: 0
+  Florida: 0
+  Houston: 0
+  UConn: 0
+  Purdue: 0
+  Tennessee: 0
+  # Add other teams below as intuition dictates.

@@ -1,0 +1,33 @@
+{
+  "year": 2026,
+  "confidence_score_percent": 85.5,
+  "regions": {
+    "East": {
+      "1": "Duke",
+      "2": "Tennessee",
+      "3": "Iowa State",
+      "4": "Michigan State"
+    },
+    "West": {
+      "1": "Arizona",
+      "2": "Purdue",
+      "3": "Gonzaga",
+      "4": "UCLA"
+    },
+    "South": {
+      "1": "Florida",
+      "2": "Houston",
+      "3": "Virginia",
+      "4": "Texas"
+    },
+    "Midwest": {
+      "1": "Michigan",
+      "2": "UConn",
+      "3": "South Carolina",
+      "4": "Auburn"
+    }
+  },
+  "metadata": {
+    "description": "Baseline Chalk bracket based on March 15, 2026 Selection Sunday projections and KenPom rankings."
+  }
+}
