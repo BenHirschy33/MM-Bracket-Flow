@@ -5,4 +5,14 @@ INFO: [31m[1mWARNING: This is a development server. Do not use it in a product
 INFO: [33mPress CTRL+C to quit[0m
 INFO:  * Restarting with stat
 WARNING:  * Debugger is active!
-INFO:  * Debugger PIN: 419-052-538
+INFO:  * Debugger PIN: 139-621-205
+INFO: 127.0.0.1 - - [15/Mar/2026 18:52:27] "HEAD / HTTP/1.1" 200 -
+INFO: 127.0.0.1 - - [15/Mar/2026 18:52:45] "GET / HTTP/1.1" 200 -
+INFO: 127.0.0.1 - - [15/Mar/2026 18:52:45] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+INFO: 127.0.0.1 - - [15/Mar/2026 18:52:45] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+INFO: 127.0.0.1 - - [15/Mar/2026 18:52:45] "GET /api/teams/2026 HTTP/1.1" 200 -
+INFO: 127.0.0.1 - - [15/Mar/2026 18:58:35] "GET /api/teams/2000 HTTP/1.1" 200 -
+INFO: 127.0.0.1 - - [15/Mar/2026 18:58:41] "GET /api/simulation/full?year=2000&sos=7.6&trb=4.9&to=2.8&efficiency=0.02 HTTP/1.1" 200 -
+INFO: 127.0.0.1 - - [15/Mar/2026 18:58:48] "GET /api/teams/2026 HTTP/1.1" 200 -
+INFO: 127.0.0.1 - - [15/Mar/2026 18:58:54] "GET /api/simulation/full?year=2026&sos=7.6&trb=4.9&to=2.8&efficiency=0.02 HTTP/1.1" 200 -
+INFO: 127.0.0.1 - - [15/Mar/2026 18:59:14] "GET /api/simulation/full?year=2026&sos=10&trb=4.9&to=2.8&efficiency=0.02 HTTP/1.1" 200 -

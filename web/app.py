@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())
 
 from core.parser import load_teams, load_bracket
 from core.simulator import SimulatorEngine
-from core.config import DEFAULT_WEIGHTS
+from core.config import DEFAULT_WEIGHTS, SimulationWeights
 
 app = Flask(__name__)
 CORS(app)
@@ -113,16 +113,33 @@ def run_full_sim():
             
             # Round 1 Setup
             for high_seed, low_seed in SEED_MATCHUPS:
-                ht = teams_data.get(seeds_map.get(str(high_seed)))
-                lt = teams_data.get(seeds_map.get(str(low_seed)))
+                ht_name = seeds_map.get(str(high_seed))
+                lt_name = seeds_map.get(str(low_seed))
+                
+                ht = teams_data.get(ht_name)
+                lt = teams_data.get(lt_name)
+                
                 if ht and lt:
+                    # Injected seeds for teams that are found in the bracket config
+                    ht.seed = int(high_seed)
+                    lt.seed = int(low_seed)
                     current_round_teams.extend([ht, lt])
+                elif ht:
+                    ht.seed = int(high_seed)
+                    current_round_teams.append(ht)
+                elif lt:
+                    lt.seed = int(low_seed)
+                    current_round_teams.append(lt)
             
+            if not current_round_teams:
+                continue
+
             round_idx = 1
             while len(current_round_teams) > 1:
                 next_round = []
                 matchups = []
-                for i in range(0, len(current_round_teams), 2):
+                # Ensure we handle odd numbers (though tournament brackets shouldn't have them)
+                for i in range(0, len(current_round_teams) - 1, 2):
                     t_a = current_round_teams[i]
                     t_b = current_round_teams[i+1]
                     prob_a = engine.calculate_win_probability(t_a, t_b)
@@ -137,6 +154,10 @@ def run_full_sim():
                         "probability": prob_a
                     })
                 
+                # If odd team remains, they get a bye
+                if len(current_round_teams) % 2 != 0:
+                    next_round.append(current_round_teams[-1])
+
                 region_trace.append({"round": round_idx, "matchups": matchups})
                 current_round_teams = next_round
                 round_idx += 1
@@ -145,7 +166,12 @@ def run_full_sim():
             if current_round_teams:
                 final_four_field.append(current_round_teams[0])
                 
-        # Final Four
+        # Final Four (Safe Check)
+        if len(final_four_field) < 4:
+            # Pad with empty teams if regions failed
+            while len(final_four_field) < 4:
+                final_four_field.append(list(teams_data.values())[0])
+
         ff_1 = engine.simulate_game(final_four_field[0], final_four_field[1], mode=mode)
         ff_2 = engine.simulate_game(final_four_field[2], final_four_field[3], mode=mode)
         

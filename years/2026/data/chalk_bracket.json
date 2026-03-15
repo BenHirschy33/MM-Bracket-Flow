@@ -3,27 +3,27 @@
   "regions": {
     "East": {
       "1": "Duke", "16": "Grambling", "8": "Kentucky", "9": "Villanova",
-      "5": "UConn", "12": "McNeese St.", "4": "Tennessee", "13": "Vermont",
+      "5": "Connecticut", "12": "McNeese State", "4": "Tennessee", "13": "Vermont",
       "6": "Kansas", "11": "Indiana", "3": "Auburn", "14": "Colgate",
       "7": "Wisconsin", "10": "Texas", "2": "North Carolina", "15": "Oakland"
     },
     "West": {
-      "1": "Michigan", "16": "Norfolk St.", "8": "Florida", "9": "St. John's",
-      "5": "Iowa St.", "12": "Grand Canyon", "4": "Purdue", "13": "Morehead St.",
+      "1": "Michigan", "16": "Norfolk State", "8": "Florida", "9": "St. John's (NY)",
+      "5": "Iowa State", "12": "Grand Canyon", "4": "Purdue", "13": "Morehead State",
       "6": "Creighton", "11": "Providence", "3": "Gonzaga", "14": "Samford",
-      "7": "San Diego St.", "10": "Michigan St.", "2": "Marquette", "15": "Montana"
+      "7": "San Diego State", "10": "Michigan State", "2": "Marquette", "15": "Montana"
     },
     "South": {
       "1": "Arizona", "16": "Howard", "8": "Illinois", "9": "Oklahoma",
-      "5": "Houston", "12": "Drake", "4": "Baylor", "13": "Appalachian St.",
+      "5": "Houston", "12": "Drake", "4": "Baylor", "13": "Appalachian State",
       "6": "Clemson", "11": "Northwestern", "3": "Alabama", "14": "UC Irvine",
       "7": "South Carolina", "10": "Nebraska", "2": "Iowa", "15": "Yale"
     },
     "Midwest": {
-      "1": "Kansas St.", "16": "St. Peter's", "8": "Virginia", "9": "Seton Hall",
-      "5": "BYU", "12": "Princeton", "4": "Texas A&M", "13": "Louisiana Tech",
+      "1": "Kansas State", "16": "Saint Peter's", "8": "Virginia", "9": "Seton Hall",
+      "5": "Brigham Young", "12": "Princeton", "4": "Texas A&M", "13": "Louisiana Tech",
       "6": "Dayton", "11": "Utah", "3": "Florida Atlantic", "14": "High Point",
-      "7": "Utah St.", "10": "New Mexico", "2": "Oregon", "15": "Lipscomb"
+      "7": "Utah State", "10": "New Mexico", "2": "Oregon", "15": "Lipscomb"
     }
   }
 }
