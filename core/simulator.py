@@ -75,6 +75,12 @@ class SimulatorEngine:
         if team_a.momentum is not None and team_b.momentum is not None:
             momentum_advantage = (team_a.momentum - team_b.momentum) * 0.05
             final_probability += momentum_advantage * self.weights.momentum_weight
+
+        # Historical Seed Advantage
+        # Lower seed number is better. Example: (team_b=16) - (team_a=1) = +15 advantage for team A
+        if team_a.seed and team_b.seed:
+            seed_advantage = (team_b.seed - team_a.seed) * 0.015
+            final_probability += seed_advantage * getattr(self.weights, 'seed_weight', 0.0)
         
         # Step 3: Apply human intuition modifier
         def get_situational_intuition(team_eval: Team, opponent: Team) -> float:

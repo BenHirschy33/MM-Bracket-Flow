@@ -18,3 +18,7 @@ INFO: 127.0.0.1 - - [15/Mar/2026 19:07:58] "[36mGET /static/css/styles.css HTTP
 INFO: 127.0.0.1 - - [15/Mar/2026 19:07:58] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
 INFO: 127.0.0.1 - - [15/Mar/2026 19:07:58] "GET /api/teams/2026 HTTP/1.1" 200 -
 INFO: 127.0.0.1 - - [15/Mar/2026 19:08:13] "GET /api/simulation/full?year=2026&sos=7.4&trb=4.9&to=2.8&efficiency=0.02 HTTP/1.1" 200 -
+/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

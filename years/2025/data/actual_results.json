@@ -1,12 +1,7 @@
 {
-  "round_of_32": [],
-  "sweet_sixteen": [],
-  "elite_eight": [],
-  "final_four": [
-    "Florida",
-    "Duke",
-    "Houston",
-    "Auburn"
-  ],
+  "round_of_32": ["UConn", "Stetson", "Illinois", "Morehead State", "Iowa State", "South Dakota State", "Auburn", "Yale", "San Diego State", "UAB", "BYU", "Duquesne", "Illinois", "Mississippi State", "Colorado", "Florida", "Purdue", "Utah State", "Gonzaga", "McNeese", "Tennessee", "Saint Peter's", "Creighton", "Akron", "North Carolina", "Wagner", "Marquette", "Western Kentucky", "Cleveland State", "Texas", "Arizona", "Long Beach State"],
+  "sweet_sixteen": ["UConn", "Illinois", "Iowa State", "Auburn", "San Diego State", "BYU", "Illinois", "Colorado", "Purdue", "Gonzaga", "Tennessee", "Creighton", "North Carolina", "Marquette", "Texas", "Arizona"],
+  "elite_eight": ["UConn", "Illinois", "Iowa State", "San Diego State", "Purdue", "Tennessee", "Marquette", "Arizona"],
+  "final_four": ["Florida", "Duke", "Houston", "Auburn"],
   "champion": "Florida"
 }

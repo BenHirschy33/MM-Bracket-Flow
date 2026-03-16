@@ -22,3 +22,4 @@ For detailed breakdowns, see the individual rule files:
 *   [architecture.md](architecture.md)
 *   [best_practices.md](best_practices.md)
 *   [interaction.md](interaction.md)
+*   [git-workflow.md](git-workflow.md)

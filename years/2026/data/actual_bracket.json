@@ -1,0 +1,29 @@
+{
+  "name": "2026 Selection Sunday - Actual Bracket",
+  "regions": {
+    "East": {
+      "1": "Duke", "16": "Siena", "8": "Ohio State", "9": "TCU",
+      "5": "St. John's (NY)", "12": "Northern Iowa", "4": "Kansas", "13": "California Baptist",
+      "6": "Louisville", "11": "South Florida", "3": "Michigan State", "14": "North Dakota State",
+      "7": "UCLA", "10": "UCF", "2": "Connecticut", "15": "Furman"
+    },
+    "West": {
+      "1": "Arizona", "16": "Long Island University", "8": "Villanova", "9": "Utah State",
+      "5": "Wisconsin", "12": "High Point", "4": "Arkansas", "13": "Hawaii",
+      "6": "Gonzaga", "11": "Texas", "3": "Miami (FL)", "14": "Kennesaw State",
+      "7": "Missouri", "10": "Purdue", "2": "Houston", "15": "Queens (NC)"
+    },
+    "Midwest": {
+      "1": "Michigan", "16": "Maryland-Baltimore County", "8": "Georgia", "9": "Saint Louis",
+      "5": "Texas Tech", "12": "Akron", "4": "Alabama", "13": "McNeese State",
+      "6": "San Diego State", "11": "Miami (OH)", "3": "Kentucky", "14": "South Dakota State",
+      "7": "Creighton", "10": "Colorado State", "2": "Marquette", "15": "Vermont"
+    },
+    "South": {
+      "1": "Florida", "16": "Prairie View", "8": "Clemson", "9": "Iowa",
+      "5": "Vanderbilt", "12": "Drake", "4": "Nebraska", "13": "Samford",
+      "6": "Baylor", "11": "Richmond", "3": "Auburn", "14": "Morehead State",
+      "7": "Illinois", "10": "Seton Hall", "2": "Tennessee", "15": "Eastern Washington"
+    }
+  }
+}

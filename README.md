@@ -28,5 +28,33 @@ The current 'Chalk' bracket structure (`/years/2026/data/chalk_bracket.json`) re
 ## Dynamic Updating (Second Chance Brackets)
 The tournament is fluid, and brackets bust. Use `core/live_update_handler.py` to input actual game winners as they happen in real-time. The framework instantly consumes these results to re-simulate "Second Chance" brackets for the remaining rounds based on actual survivors.
 
+
+## Installation
+
+1.  **Cloning the Repository:**
+    ```bash
+    git clone [repository-url]
+    cd MM-Bracket-Flow
+    ```
+
+2.  **Environment Setup:**
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+    pip install -e .
+    pip install ruff
+    ```
+
+## Running the App
+
+1.  **Start the Flask Backend:**
+    ```bash
+    python web/app.py
+    ```
+    The server will start at `http://127.0.0.1:5001`.
+
+2.  **Access the UI:**
+    Open `web/templates/index.html` in your browser (or serve it through a local server if needed).
+
 ## Contribution Guidelines & Safeguards
 *Local-Only Commit Policy*: Because statistical and live-update integrity is paramount, this repository observes strict push protections. Push commands are governed by manual review to ensure the perpetual simulator isn't tainted by accidental data overwrites.

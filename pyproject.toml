@@ -3,6 +3,13 @@ name = "mm-bracket-flow"
 version = "1.0.0"
 description = "A perpetual March Madness prediction engine with human intuition."
 requires-python = ">=3.10"
+dependencies = [
+    "flask",
+    "flask-cors",
+    "pandas",
+    "pyyaml",
+    "numpy",
+]
 
 [tool.ruff]
 # Set the maximum line length to 120.

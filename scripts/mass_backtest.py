@@ -18,8 +18,8 @@ def run_mass_backtest(iterations=100, years=[2021, 2022, 2023, 2024, 2025]):
         print(f"Evaluating {year}...")
         avg_score, max_possible = evaluate_bracket(year, weights, iterations=iterations)
         
-        # If score is 0, it likely means we are missing actual_results.json for that year
-        if avg_score > 0:
+        # Return of -1 means missing actual_results.json or data
+        if avg_score >= 0:
             results[year] = avg_score
             overall_total_score += avg_score
             available_years += 1

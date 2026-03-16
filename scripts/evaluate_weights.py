@@ -18,8 +18,10 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
         bracket_data = load_bracket(base_dir / "chalk_bracket.json")
         with open(base_dir / "actual_results.json", 'r') as f:
             actual_results = json.load(f)
+            if "champion" not in actual_results:
+                return -1, 1920
     except FileNotFoundError:
-        return 0, 1920
+        return -1, 1920
 
     engine = SimulatorEngine(weights=weights)
     total_score = 0
@@ -60,6 +62,9 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
                 name_l = seeds_map.get(str(l_seed))
                 team_h = get_team_safely(name_h, teams_data)
                 team_l = get_team_safely(name_l, teams_data)
+                
+                if team_h: team_h.seed = h_seed
+                if team_l: team_l.seed = l_seed
                 
                 if team_h and team_l:
                     winner = engine.simulate_game(team_h, team_l, mode=mode)

@@ -73,13 +73,13 @@ def simulate_region(region_name, seeds_map, teams_data, engine):
         
     return regional_champ
 
-def run_tournament(year: int):
+def run_tournament(year: int, bracket_filename: str):
     print(f"Loading data for year {year}...")
     base_dir = Path(f"years/{year}/data")
     
     try:
         teams_data = load_teams(base_dir / "team_stats.csv", year=year)
-        bracket_data = load_bracket(base_dir / "chalk_bracket.json")
+        bracket_data = load_bracket(base_dir / bracket_filename)
     except FileNotFoundError as e:
         print(f"Error loading data: {e}")
         sys.exit(1)
@@ -124,5 +124,6 @@ def run_tournament(year: int):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the MM-Bracket-Flow simulation.")
     parser.add_argument("--year", type=int, default=2026, help="Year of the tournament to simulate")
+    parser.add_argument("--bracket", type=str, default="chalk_bracket.json", help="Bracket filename (e.g. actual_bracket.json)")
     args = parser.parse_args()
-    run_tournament(args.year)
+    run_tournament(args.year, args.bracket)

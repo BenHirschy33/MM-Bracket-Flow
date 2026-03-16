@@ -1,12 +1,7 @@
 {
-  "round_of_32": [],
-  "sweet_sixteen": [],
-  "elite_eight": [],
-  "final_four": [
-    "Kansas",
-    "UNC",
-    "Duke",
-    "Villanova"
-  ],
+  "round_of_32": ["Gonzaga", "Memphis", "Iowa", "Illinois", "Texas Tech", "Notre Dame", "Duke", "Michigan State", "Kentucky", "Saint Peter's", "Murray State", "San Francisco", "Providence", "Richmond", "Tennessee", "Longwood", "Arizona", "TCU", "Houston", "UAB", "Illinois", "Chattanooga", "Colorado State", "Michigan", "Arkansas", "New Mexico State", "Connecticut", "New Mexico State", "Auburn", "Miami", "Villanova", "Ohio State"],
+  "sweet_sixteen": ["Gonzaga", "Arkansas", "Duke", "Kentucky", "Saint Peter's", "Murray State", "Providence", "Tennessee", "Arizona", "Houston", "Michigan", "Illinois", "Connecticut", "Auburn", "Villanova", "Kansas"],
+  "elite_eight": ["Arkansas", "Duke", "Saint Peter's", "Kansas", "Houston", "Michigan", "Villanova", "Miami"],
+  "final_four": ["Kansas", "UNC", "Duke", "Villanova"],
   "champion": "Kansas"
 }

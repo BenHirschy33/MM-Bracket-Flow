@@ -1,3 +1,4 @@
+import argparse
 import sys
 import random
 from pathlib import Path
@@ -12,13 +13,11 @@ def optimize_random_search(year=2024, iterations=5000):
     
     for i in range(iterations):
         weights = SimulationWeights(
-            pythagorean_weight=random.uniform(0.5, 2.0),
-            pace_variance_weight=random.uniform(-1.0, 3.0),
-            efg_matchup_weight=random.uniform(-2.0, 3.0),
-            turnover_matchup_weight=random.uniform(-2.0, 3.0),
-            rebounding_matchup_weight=random.uniform(-2.0, 3.0),
-            sos_weight=random.uniform(0.0, 3.0),
+            trb_weight=random.uniform(0.0, 3.0),
+            to_weight=random.uniform(0.0, 2.0),
+            sos_weight=random.uniform(0.0, 10.0),
             momentum_weight=random.uniform(-1.0, 3.0),
+            efficiency_weight=random.uniform(0.0, 1.0),
             defense_premium=random.uniform(0.5, 2.5),
             intuition_weight=0.0 # Don't optimize intuition here
         )
@@ -37,4 +36,9 @@ def optimize_random_search(year=2024, iterations=5000):
     print("=======================================================")
 
 if __name__ == "__main__":
-    optimize_random_search(2024, iterations=3000)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--year", type=int, default=2024)
+    parser.add_argument("--iter", type=int, default=3000)
+    args = parser.parse_args()
+    optimize_random_search(args.year, iterations=args.iter)
+
