@@ -75,41 +75,17 @@ class SimulatorEngine:
         if team_a.momentum is not None and team_b.momentum is not None:
             momentum_advantage = (team_a.momentum - team_b.momentum) * 0.05
             final_probability += momentum_advantage * self.weights.momentum_weight
-        
-        # Step 3: Apply human intuition modifier
-        def get_situational_intuition(team_eval: Team, opponent: Team) -> float:
-            score = team_eval.intuition_score
-            data = team_eval.intuition_data
-            if not data:
-                return score
-                
-            score = float(data.get("base", score))
-            score += float(data.get("injuries_penalty", 0.0))
-            score += float(data.get("conf_tourney_boost", 0.0))
-            score += float(data.get("motivation_factor", 0.0))
             
-            for vuln in data.get("vulnerabilities", []):
-                metric = vuln.get("metric")
-                thresh = float(vuln.get("threshold", 0.0))
-                penalty = float(vuln.get("penalty", 0.0))
-                
-                opp_val = None
-                if metric == "3PAr": opp_val = opponent.three_par
-                elif metric == "Pace": opp_val = opponent.pace
-                elif metric == "TO%_Def": opp_val = opponent.def_to_pct # Press vulnerability
-                
-                if opp_val is not None and opp_val >= thresh:
-                    score += penalty
-                    
-            return score
-
-        a_situational = get_situational_intuition(team_a, team_b)
-        b_situational = get_situational_intuition(team_b, team_a)
-        
-        net_intuition = a_situational - b_situational
-        intuition_modifier = net_intuition * self.weights.intuition_weight
-        
-        final_probability += intuition_modifier
+        # Free Throw Advantage (proxy for efficiency and drawing fouls)
+        if team_a.off_ft_pct is not None and team_b.def_ft_pct is not None and \
+           team_b.off_ft_pct is not None and team_a.def_ft_pct is not None:
+            ft_advantage = (team_a.off_ft_pct - team_b.def_ft_pct) - (team_b.off_ft_pct - team_a.def_ft_pct)
+            final_probability += ft_advantage * 0.01 * self.weights.ft_weight
+            
+        # 3PAr Advantage (higher 3PAr can mean more variance, but also efficiency if they make them)
+        if team_a.three_par is not None and team_b.three_par is not None:
+            threepar_advantage = (team_a.three_par - team_b.three_par) * 0.01
+            final_probability += threepar_advantage * self.weights.three_par_weight
         
         # Clamp to valid probability bounds [0.01, 0.99]
         final_probability = max(0.01, min(0.99, final_probability))
@@ -118,7 +94,6 @@ class SimulatorEngine:
         logging.debug(
             f"Matchup: {team_a.name} vs {team_b.name} | "
             f"Base Stats: {round(base_probability * 100, 1)}% | "
-            f"Intuition Delta: {net_intuition}pts | "
             f"Final: {team_a.name} {team_a_pct}%"
         )
         
