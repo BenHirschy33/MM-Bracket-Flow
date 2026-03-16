@@ -16,7 +16,29 @@ I have prepared the repository for high-velocity, parallel development. You are 
 - **System Prompts**: Created ready-to-use prompts in `prompts/`:
     - [optimization_agent.md](file:///Users/benhirschy/Desktop/MM-Bracket-Flow/prompts/optimization_agent.md)
     - [web_agent.md](file:///Users/benhirschy/Desktop/MM-Bracket-Flow/prompts/web_agent.md)
-- **Communication Log**: Initialized [agent_sync.md](file:///Users/benhirschy/Desktop/MM-Bracket-Flow/docs/agent_sync.md) for cross-agent coordination.
+- **Communication Log**: Initialized [agent_sync.md](file:///Users/benhirschy/Desktop/MM-Bracket-Flow/docs/agent_sync.md)
+
+## Phase 5-7: Tournament Readiness & Gold Standard Validation
+
+### ✅ Phase 5: Neutral Site Mastery
+- **Signals**: Integrated `neutral_win_pct` and `non_conf_win_pct`.
+- **Logic**: Penalized teams that struggle outside their home floor or conference silo.
+
+### ✅ Phase 6: Quality Audit & Defensive Discipline
+- **Efficiency Baseline**: Standardized pace-adjusted `AdjO` and `AdjD` for all 26 seasons.
+- **Defensive Discipline**: Integrated `def_ft_rate` (Free Throw Rate Allowed) to penalize foul-prone teams.
+- **"Truth Sweep"**: Performed definitive re-optimization with corrected parser indices (320.0 peak fitness).
+
+### 🚀 Phase 7: Bench Depth & Ensemble Refinement
+- **Depth Factor**: Implemented late-round synergy for `AST%` and `TRB%` (shared load proxy).
+- **Roster Continuity**: Weighted experience against strength of schedule to identify high-floor veterans.
+- **Ensemble Optimization**: Finalized Gold Standard weights (320.0 fitness).
+
+### 🏆 Phase 8: Monte Carlo Suite & Ideal Pathing (New)
+- **Matchup Locks**: Force specific winners in the Monte Carlo engine for "what-if" analysis.
+- **Ideal Path Intelligence**: Identify which external bracket outcomes (non-target games) maximize a specific team's success probability.
+- **Autonomous Optimization**: Completed iterative loop. Optimization reached a stable plateau at **320.0 fitness** (3-strike condition met).
+- **Granular Control**: Tunable `cinderella_factor` and `due_factor_sensitivity` for precise model calibration.
 
 ## 🚀 How to Launch Now
 

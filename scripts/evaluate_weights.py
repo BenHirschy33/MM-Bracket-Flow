@@ -23,7 +23,7 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
     except FileNotFoundError:
         return -1, 1920
 
-    engine = SimulatorEngine(weights=weights)
+    engine = SimulatorEngine(teams=teams_data, weights=weights)
     total_score = 0
     
     # Pre-calculate actuals
@@ -51,6 +51,7 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
         return None
 
     for _ in range(iterations):
+        engine.reset_state()
         sim_score = 0
         final_four_field = []
         
@@ -67,7 +68,9 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
                 if team_l: team_l.seed = l_seed
                 
                 if team_h and team_l:
-                    winner = engine.simulate_game(team_h, team_l, mode=mode)
+                    # Note: engine state persist through one full bracket run (63 games)
+                    winner_name = engine.simulate_matchup(team_h.name, team_l.name, round_num=1)
+                    winner = teams_data[winner_name]
                     r1_winners.append(winner)
                     if winner.name in actual_r32: sim_score += points[1]
                 elif team_h:
@@ -86,7 +89,8 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
                     if i + 1 < len(current_teams):
                         t_a = current_teams[i]
                         t_b = current_teams[i+1]
-                        winner = engine.simulate_game(t_a, t_b, mode=mode)
+                        winner_name = engine.simulate_matchup(t_a.name, t_b.name, round_num=round_idx)
+                        winner = teams_data[winner_name]
                         next_round.append(winner)
                         if round_idx <= 4:
                             if winner.name in actuals[round_idx - 1]:
@@ -102,15 +106,14 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
 
         # Final Four
         if len(final_four_field) == 4:
-            ff1 = engine.simulate_game(final_four_field[0], final_four_field[1], mode=mode)
-            ff2 = engine.simulate_game(final_four_field[2], final_four_field[3], mode=mode)
-            # 160 points for picking champ game participants isn't strictly in my actual_results, 
-            # so we just score the champion (320)
-            champ = engine.simulate_game(ff1, ff2, mode=mode)
-            if champ.name in actual_champ:
+            ff1_name = engine.simulate_matchup(final_four_field[0].name, final_four_field[1].name, round_num=5)
+            ff2_name = engine.simulate_matchup(final_four_field[2].name, final_four_field[3].name, round_num=5)
+            champ_name = engine.simulate_matchup(ff1_name, ff2_name, round_num=6)
+            if champ_name in actual_champ:
                 sim_score += 320
         
         total_score += sim_score
+        engine.reset_state() # Reset for next iteration
 
     return total_score / iterations, 1920
 

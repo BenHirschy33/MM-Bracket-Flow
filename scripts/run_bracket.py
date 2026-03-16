@@ -4,7 +4,7 @@ from pathlib import Path
 
 from core.parser import load_teams, load_bracket
 from core.simulator import SimulatorEngine
-from core.config import SimulationWeights
+from core.config import SimulationWeights, DEFAULT_WEIGHTS
 
 # Standard tournament seed matchup ordering for the Round of 64
 SEED_MATCHUPS = [
@@ -36,6 +36,8 @@ def simulate_region(region_name, seeds_map, teams_data, engine):
             team_low = teams_data.get(low_team_name)
             
             if team_high and team_low:
+                team_high.seed = int(high_seed)
+                team_low.seed = int(low_seed)
                 current_round_teams.append(team_high)
                 current_round_teams.append(team_low)
             else:
@@ -53,13 +55,15 @@ def simulate_region(region_name, seeds_map, teams_data, engine):
             team_a = current_round_teams[i]
             team_b = current_round_teams[i+1]
             
-            winner = engine.simulate_game(team_a, team_b)
-            prob_a = engine.calculate_win_probability(team_a, team_b)
+            winner_name = engine.simulate_matchup(team_a.name, team_b.name, round_num)
+            prob_a = engine.calculate_win_probability(team_a, team_b, round_num)
             
-            if winner.name == team_a.name:
+            if winner_name == team_a.name:
                 win_pct = prob_a
+                winner = team_a
             else:
                 win_pct = 1.0 - prob_a
+                winner = team_b
                 
             print(f"  {team_a.name} ({team_a.seed}) vs {team_b.name} ({team_b.seed}) -> {winner.name} wins ({round(win_pct*100, 1)}%)")
             next_round_teams.append(winner)
@@ -85,7 +89,12 @@ def run_tournament(year: int, bracket_filename: str):
         sys.exit(1)
         
     # We can inject custom SimulationWeights here later via CLI args.
-    engine = SimulatorEngine()
+    weights = DEFAULT_WEIGHTS
+    if getattr(args, 'chaos', False):
+        weights.chaos_mode = True
+        print("⚠️ CHAOS MODE ENABLED ⚠️")
+    
+    engine = SimulatorEngine(teams=teams_data, weights=weights)
     
     final_four = []
     
@@ -106,17 +115,22 @@ def run_tournament(year: int, bracket_filename: str):
     
     # Simple hardcode for now depending on order of dictionary keys
     # Usually: Team 0 vs Team 1, Team 2 vs Team 3
-    ff_winner_1 = engine.simulate_game(final_four[0], final_four[1])
+    round_num = 5
+    ff_winner_1_name = engine.simulate_matchup(final_four[0].name, final_four[1].name, round_num)
+    ff_winner_1 = final_four[0] if ff_winner_1_name == final_four[0].name else final_four[1]
     print(f"Final Four: {final_four[0].name} vs {final_four[1].name} -> {ff_winner_1.name} wins!")
     
-    ff_winner_2 = engine.simulate_game(final_four[2], final_four[3])
+    ff_winner_2_name = engine.simulate_matchup(final_four[2].name, final_four[3].name, round_num)
+    ff_winner_2 = final_four[2] if ff_winner_2_name == final_four[2].name else final_four[3]
     print(f"Final Four: {final_four[2].name} vs {final_four[3].name} -> {ff_winner_2.name} wins!")
     
     print("\n==============================")
     print("     NATIONAL CHAMPIONSHIP    ")
     print("==============================")
     
-    national_champ = engine.simulate_game(ff_winner_1, ff_winner_2)
+    round_num = 6
+    national_champ_name = engine.simulate_matchup(ff_winner_1.name, ff_winner_2.name, round_num)
+    national_champ = ff_winner_1 if national_champ_name == ff_winner_1.name else ff_winner_2
     print(f"Championship: {ff_winner_1.name} vs {ff_winner_2.name} -> {national_champ.name} wins!")
     
     print(f"\n🏆 {national_champ.name} ARE THE {year} NATIONAL CHAMPIONS! 🏆\n")
@@ -125,5 +139,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the MM-Bracket-Flow simulation.")
     parser.add_argument("--year", type=int, default=2026, help="Year of the tournament to simulate")
     parser.add_argument("--bracket", type=str, default="chalk_bracket.json", help="Bracket filename (e.g. actual_bracket.json)")
+    parser.add_argument("--chaos", action="store_true", help="Enable Chaos Engine for high-variance predictions")
     args = parser.parse_args()
     run_tournament(args.year, args.bracket)
