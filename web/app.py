@@ -29,15 +29,30 @@ def get_teams(year):
             teams_list.append({
                 "name": name,
                 "seed": t.seed,
+                "momentum": t.momentum,
+                "sos": getattr(t, 'sos', 0),
+                "to_pct": getattr(t, 'to_pct', 0),
                 "off_efficiency": t.off_efficiency,
                 "def_efficiency": t.def_efficiency,
                 "trb_pct": t.trb_pct,
-                "intuition_score": t.intuition_score,
-                "momentum": t.momentum
+                "off_ft_pct": getattr(t, 'off_ft_pct', 0),
+                "def_ft_pct": getattr(t, 'def_ft_pct', 0),
+                "intuition_score": t.intuition_score
             })
         return jsonify(teams_list)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+@app.route('/api/weights/optimal')
+def get_optimal_weights():
+    return jsonify({
+        "trb": DEFAULT_WEIGHTS.trb_weight,
+        "to": DEFAULT_WEIGHTS.to_weight,
+        "sos": DEFAULT_WEIGHTS.sos_weight,
+        "momentum": DEFAULT_WEIGHTS.momentum_weight,
+        "efficiency": DEFAULT_WEIGHTS.efficiency_weight,
+        "ft": DEFAULT_WEIGHTS.ft_weight
+    })
 
 @app.route('/api/bracket/<int:year>', methods=['GET'])
 def get_bracket(year):
@@ -84,7 +99,9 @@ def simulate_matchup():
             to_weight=float(weights_data.get('to', 2.846)),
             sos_weight=float(weights_data.get('sos', 7.635)),
             momentum_weight=float(weights_data.get('momentum', 0.073)),
-            efficiency_weight=float(weights_data.get('efficiency', 0.022))
+            efficiency_weight=float(weights_data.get('efficiency', 0.022)),
+            ft_weight=float(weights_data.get('ft', 0.881)),
+            defense_premium=float(weights_data.get('def_premium', 6.479))
         )
         engine = SimulatorEngine(weights=custom_weights)
         prob_a = engine.calculate_win_probability(team_a, team_b)
@@ -95,6 +112,102 @@ def simulate_matchup():
             "probability": prob_a,
             "team_a": team_a_name,
             "team_b": team_b_name 
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/matchup/detail', methods=['GET', 'POST'])
+def get_matchup_detail():
+    if request.method == 'POST':
+        data = request.json or {}
+    else:
+        # Handle GET params
+        data = {
+            'year': request.args.get('year', default=2026, type=int),
+            'team_a': request.args.get('team_a'),
+            'team_b': request.args.get('team_b'),
+            'sos': request.args.get('sos', type=float),
+            'trb': request.args.get('trb', type=float),
+            'to': request.args.get('to', type=float),
+            'eff': request.args.get('eff', type=float),
+            'momentum': request.args.get('momentum', type=float),
+            'ft': request.args.get('ft', type=float),
+            'def_premium': request.args.get('def_premium', type=float)
+        }
+        
+    year = data.get('year', 2026)
+    team_a_name = data.get('team_a')
+    team_b_name = data.get('team_b')
+    weights_data = data.get('weights', data) # if POST uses 'weights', else flat
+
+    try:
+        base_dir = Path(f"years/{year}/data")
+        teams = load_teams(base_dir / "team_stats.csv", year=year)
+        t_a = teams.get(team_a_name)
+        t_b = teams.get(team_b_name)
+        
+        if not t_a or not t_b:
+            return jsonify({"error": "Team not found"}), 404
+            
+        custom_weights = SimulationWeights(
+            trb_weight=float(weights_data.get('trb') or 4.895),
+            to_weight=float(weights_data.get('to') or 2.846),
+            sos_weight=float(weights_data.get('sos') or 7.635),
+            momentum_weight=float(weights_data.get('momentum') or 0.073),
+            efficiency_weight=float(weights_data.get('eff') or 0.022),
+            ft_weight=float(weights_data.get('ft') or 0.881),
+            defense_premium=float(weights_data.get('def_premium') or 6.479)
+        )
+        engine = SimulatorEngine(weights=custom_weights)
+        prob_a = engine.calculate_win_probability(t_a, t_b)
+        
+        # Generate dynamic "Why" analysis
+        analysis = []
+        
+        # SOS Check
+        sos_diff = (t_a.sos or 0) - (t_b.sos or 0)
+        if abs(sos_diff) > 2.0:
+            analysis.append({
+                "factor": "Strength of Schedule",
+                "importance": "High",
+                "description": f"{t_a.name if sos_diff > 0 else t_b.name} has been battle-tested against a tougher schedule (+{abs(sos_diff):.1f} SOS)."
+            })
+            
+        # Overall Efficiency Check
+        eff_a = (t_a.off_efficiency or 100) - (t_a.def_efficiency or 100)
+        eff_b = (t_b.off_efficiency or 100) - (t_b.def_efficiency or 100)
+        eff_diff = eff_a - eff_b
+        if abs(eff_diff) > 5.0:
+            analysis.append({
+                "factor": "Efficiency Margin",
+                "importance": "Critical",
+                "description": f"{t_a.name if eff_diff > 0 else t_b.name} owns a major analytical advantage in overall net efficiency."
+            })
+
+        # Free Throw Factor
+        ft_a = (t_a.off_ft_pct or 70) - (t_b.def_ft_pct or 70)
+        ft_b = (t_b.off_ft_pct or 70) - (t_a.def_ft_pct or 70)
+        ft_diff = ft_a - ft_b
+        if abs(ft_diff) > 4.0:
+            analysis.append({
+                "factor": "Free Throw Advantage",
+                "importance": "Situational",
+                "description": f"{t_a.name if ft_diff > 0 else t_b.name} is significantly more effective at the charity stripe."
+            })
+
+        return jsonify({
+            "team_a": {
+                "name": t_a.name, "seed": t_a.seed,
+                "off_eff": t_a.off_efficiency, "def_eff": t_a.def_efficiency,
+                "sos": t_a.sos, "trb": t_a.trb_pct, "mom": t_a.momentum, "ft": t_a.off_ft_pct
+            },
+            "team_b": {
+                "name": t_b.name, "seed": t_b.seed,
+                "off_eff": t_b.off_efficiency, "def_eff": t_b.def_efficiency,
+                "sos": t_b.sos, "trb": t_b.trb_pct, "mom": t_b.momentum, "ft": t_b.off_ft_pct
+            },
+            "probability": prob_a,
+            "analysis": analysis
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -113,7 +226,8 @@ def run_full_sim():
             to_weight=float(weights_data.get('to', 2.846)),
             sos_weight=float(weights_data.get('sos', 7.635)),
             momentum_weight=float(weights_data.get('momentum', 0.073)),
-            efficiency_weight=float(weights_data.get('efficiency', 0.022))
+            efficiency_weight=float(weights_data.get('efficiency', 0.022)),
+            ft_weight=float(weights_data.get('ft', 0.881))
         )
     else:
         year = request.args.get('year', default=2026, type=int)
@@ -122,11 +236,13 @@ def run_full_sim():
         
         # Parse weights from query params (e.g., ?sos=7.5&trb=4.2)
         custom_weights = SimulationWeights(
-            trb_weight=request.args.get('trb', default=4.895, type=float),
-            to_weight=request.args.get('to', default=2.846, type=float),
-            sos_weight=request.args.get('sos', default=7.635, type=float),
-            momentum_weight=request.args.get('momentum', default=0.073, type=float),
-            efficiency_weight=request.args.get('efficiency', default=0.022, type=float)
+            trb_weight=request.args.get('trb', default=DEFAULT_WEIGHTS.trb_weight, type=float),
+            to_weight=request.args.get('to', default=DEFAULT_WEIGHTS.to_weight, type=float),
+            sos_weight=request.args.get('sos', default=DEFAULT_WEIGHTS.sos_weight, type=float),
+            momentum_weight=request.args.get('momentum', default=DEFAULT_WEIGHTS.momentum_weight, type=float),
+            efficiency_weight=request.args.get('efficiency', default=DEFAULT_WEIGHTS.efficiency_weight, type=float),
+            ft_weight=request.args.get('ft', default=DEFAULT_WEIGHTS.ft_weight, type=float),
+            defense_premium=request.args.get('def_premium', default=DEFAULT_WEIGHTS.defense_premium, type=float)
         )
     
     SEED_MATCHUPS = [(1, 16), (8, 9), (5, 12), (4, 13), (6, 11), (3, 14), (7, 10), (2, 15)]

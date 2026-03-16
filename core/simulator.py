@@ -42,6 +42,14 @@ class SimulatorEngine:
         # Apply Metrics
         final_probability = base_probability
         
+        # Step 2: Advanced Metric Modifiers
+        # Defense Premium (Boosts the team with the better defense)
+        def_b = team_b.def_efficiency or 100.0
+        def_a = team_a.def_efficiency or 100.0
+        def_delta = def_b - def_a # lower def_efficiency is better
+        # We'll bake defense premium into efficiency weight for simplicity in optimization
+        final_probability += (def_delta * 0.001) * self.weights.defense_premium
+        
         # 2. Seed Advantage (The "Chalk" baseline)
         seed_diff = team_b.seed - team_a.seed
         final_probability += seed_diff * self.weights.seed_weight
@@ -199,6 +207,13 @@ class SimulatorEngine:
                 else:
                     final_probability = min(0.5, final_probability + neutralization)
 
+        # eFG% Matchup (A's offense vs B's defense)
+        if None not in (team_a.off_efg_pct, team_b.def_efg_pct, team_b.off_efg_pct, team_a.def_efg_pct):
+            a_off_b_def_efg = team_a.off_efg_pct - team_b.def_efg_pct
+            b_off_a_def_efg = team_b.off_efg_pct - team_a.def_efg_pct
+            efg_advantage = (a_off_b_def_efg - b_off_a_def_efg) * 0.002
+            final_probability += efg_advantage * self.weights.efficiency_weight
+
         # CHAOS ENGINE: Probability Shift
         # If chaos_mode is on, and an underdog (by seed) has a "Chaos Profile"
         # (High 3PAr or massive TO edge), we shift their probability up.
@@ -224,16 +239,6 @@ class SimulatorEngine:
                     shift = 0.05 * self.weights.cinderella_factor
                     final_probability += (shift * underdog_idx)
 
-        # 3. Chaos Multiplier (If chaos_mode is enabled)
-        if self.weights.chaos_mode:
-            # Shift probability toward the underdog if indicators are met
-            chaos_indicators = 0
-            if team_b.three_par and team_b.three_par > 0.42: chaos_indicators += 1
-            if team_b.def_to_pct and team_b.def_to_pct > 20.0: chaos_indicators += 1
-            
-            if chaos_indicators > 0:
-                final_probability -= (0.05 * self.weights.cinderella_factor)
-                
         # 4. The Due Factor (Phase 4)
         # If we have too many upsets, narrow the probability (make it more likely for the favorite)
         # If we have too few, widen it (make upsets more likely)
