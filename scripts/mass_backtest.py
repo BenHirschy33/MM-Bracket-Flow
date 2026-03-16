@@ -4,7 +4,11 @@ from pathlib import Path
 from core.config import SimulationWeights
 from scripts.evaluate_weights import evaluate_bracket
 
-def run_mass_backtest(iterations=100, years=[2021, 2022, 2023, 2024, 2025]):
+def run_mass_backtest(iterations=100, years=None):
+    if years is None:
+        years = [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 
+                 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 
+                 2021, 2022, 2023, 2024]
     print(f"--- Starting Mass Monte Carlo Backtest ({iterations} iterations per year) ---")
     
     overall_total_score = 0

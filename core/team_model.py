@@ -24,9 +24,65 @@ class Team:
     momentum: Optional[float] = None       # Win % over the last 10 games
     trb_pct: Optional[float] = None        # Total Rebound Percentage
     three_par: Optional[float] = None      # 3-Point Attempt Rate
-    off_ft_pct: Optional[float] = None     # Offensive Free Throw %
+    off_ft_pct: Optional[float] = None     # Offensive Free Throw % (Percentage made)
     def_ft_pct: Optional[float] = None     # Defensive Free Throw % Allowed
     
+    # Chaos/Grit Metrics (Phase 4)
+    off_ft_rate: Optional[float] = None    # FTr: FTA / FGA (Aggressiveness)
+    off_ast_pct: Optional[float] = None    # AST%: Assisted field goals
+    off_stl_pct: Optional[float] = None    # STL%: Steal percentage
+    off_blk_pct: Optional[float] = None    # BLK%: Block percentage
+    off_orb_pct: Optional[float] = None    # ORB%: Offensive rebound percentage
+    luck: Optional[float] = None           # Luck/Overachievement metric
+    off_ts_pct: Optional[float] = None    # True Shooting Percentage (Phase 4)
+    def_ft_rate: Optional[float] = None    # FTr Allowed (Phase 5+)
+    total_games: Optional[int] = None      # Experience proxy (Phase 4)
+    star_reliance: Optional[float] = None # Pricing index for usage concentration (Phase 9)
+    
+    # Career/Venue Performance
+    home_w: Optional[int] = None
+    home_l: Optional[int] = None
+    away_w: Optional[int] = None
+    away_l: Optional[int] = None
+    conf_w: Optional[int] = None        # Conference record (Phase 5)
+    conf_l: Optional[int] = None        # Conference record (Phase 5)
+    neutral_w: Optional[int] = None        # Derived (Phase 5)
+    neutral_l: Optional[int] = None        # Derived (Phase 5)
+    
+    @property
+    def road_dominance(self) -> float:
+        """Road win % minus home win %."""
+        home_total = (self.home_w or 0) + (self.home_l or 0)
+        away_total = (self.away_w or 0) + (self.away_l or 0)
+        
+        home_pct = (self.home_w / home_total) if home_total > 0 else 0.5
+        away_pct = (self.away_w / away_total) if away_total > 0 else 0.5
+        
+        return away_pct - home_pct
+
+    @property
+    def neutral_win_pct(self) -> float:
+        """Neutral site win percentage."""
+        total = (self.neutral_w or 0) + (self.neutral_l or 0)
+        if total == 0:
+            return 0.5  # Neutral default
+        return self.neutral_w / total
+
+    @property
+    def non_conf_win_pct(self) -> float:
+        """Non-conference win percentage."""
+        total_w = (self.home_w or 0) + (self.away_w or 0) + (self.neutral_w or 0)
+        total_l = (self.home_l or 0) + (self.away_l or 0) + (self.neutral_l or 0)
+        
+        non_conf_w = max(0, total_w - (self.conf_w or 0))
+        non_conf_l = max(0, total_l - (self.conf_l or 0))
+        
+        total = non_conf_w + non_conf_l
+        if total == 0:
+            return 0.5
+        return non_conf_w / total
+# Actually I'll use the record logic.
+
     @property
     def pythagorean_expectation(self) -> float:
         """

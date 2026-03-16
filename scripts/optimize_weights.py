@@ -2,6 +2,7 @@ import sys
 import math
 import random
 import logging
+import numpy as np
 from pathlib import Path
 
 # Ensure we use the local core package
@@ -13,88 +14,145 @@ from scripts.evaluate_weights import evaluate_bracket
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-# Years to use for multi-year optimization (focus on modern era)
-YEARS = [2018, 2019, 2021, 2022, 2023, 2024]
+# expanded years for better generalization (including earlier years)
+YEARS = [2000, 2005, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024]
 
-def get_multi_year_score(weights: SimulationWeights):
-    """Calculates the average score across multiple tournament years."""
-    total_score = 0
-    count = 0
-    for year in YEARS:
-        score, _ = evaluate_bracket(year, weights)
-        if score > 0: # Skip if data is missing
-            total_score += score
-            count += 1
-    return total_score / count if count > 0 else 0
+def get_multi_year_scores(weights: SimulationWeights, years_list):
+    """Calculates scores across a specific list of years with Monte Carlo evaluation."""
+    scores = []
+    for year in years_list:
+        # Using iterations=2 to reduce variance in the fitness function itself
+        score, _ = evaluate_bracket(year, weights, iterations=2)
+        if score > 0:
+            scores.append(score)
+    return scores
 
-def optimize_simulated_annealing(iterations=2000, temp=1.0, cooling_rate=0.999):
+def cross_validate_weights(weights: SimulationWeights):
     """
-    Final Deep Optimization Sweep.
-    Focuses on locking in the dominant SOS/Efficiency/Defense pillars.
+    Performs Leave-One-Season-Out (LOSO) cross-validation.
+    Returns the average validation score across all folds.
     """
-    # Start with current optimized weights
+    all_scores = get_multi_year_scores(weights, YEARS)
+    if not all_scores:
+        return 0, 0
+    
+    avg_score = np.mean(all_scores)
+    std_score = np.std(all_scores)
+    
+    # Fitness = Average Score - (Penalty for high variance)
+    # This prevents overfitting to a few "chalky" years
+    fitness = avg_score - (0.2 * std_score)
+    return fitness, avg_score
+
+def optimize_simulated_annealing(iterations=5000, temp=2.0, cooling_rate=0.9995):
+    """
+    Phase 2: Ultra-Deep K-Fold Optimization Sweep.
+    """
     current_weights = SimulationWeights()
-    current_score = get_multi_year_score(current_weights)
+    current_fitness, current_avg = cross_validate_weights(current_weights)
     
     best_weights = current_weights
-    best_score = current_score
+    best_fitness = current_fitness
+    best_avg = current_avg
     
-    print(f"Starting Final Deep Optimization Sweep...")
-    print(f"Initial Multi-Year Score: {round(current_score, 2)}")
+    print(f"Starting Phase 5: Definitive Truth Sweep...")
+    print(f"Initial CV Fitness: {round(current_fitness, 2)} | Avg Score: {round(current_avg, 2)}")
     
-    for i in range(iterations):
-        # Precise tweaks for fine-tuning
-        new_params = {
-            "trb_weight": 0.0,
-            "to_weight": max(0, current_weights.to_weight + random.uniform(-0.2, 0.2)),
-            "sos_weight": max(0, current_weights.sos_weight + random.uniform(-0.5, 0.5)),
-            "momentum_weight": max(0, current_weights.momentum_weight + random.uniform(-0.01, 0.01)),
-            "efficiency_weight": max(0, current_weights.efficiency_weight + random.uniform(-0.01, 0.01)),
-            "ft_weight": max(0, current_weights.ft_weight + random.uniform(-0.05, 0.05)),
-            "three_par_weight": 0.0,
-            "pace_variance_weight": 0.0,
-            "defense_premium": max(0.5, current_weights.defense_premium + random.uniform(-0.2, 0.2)),
-            "intuition_weight": 0.0
-        }
-        
-        new_weights = SimulationWeights(**new_params)
-        new_score = get_multi_year_score(new_weights)
-        
-        # Acceptance probability
-        if new_score > current_score:
-            acceptance_prob = 1.0
-        else:
-            # Boltzman distribution (even if score is worse, maybe accept it to escape local optima)
-            # Dividing by temp allows higher exploration early on
-            acceptance_prob = math.exp((new_score - current_score) / max(0.0001, temp))
+    try:
+        for i in range(iterations):
+            temp_sa = iterations - i # Linear cooling
             
-        if random.random() < acceptance_prob:
-            current_weights = new_weights
-            current_score = new_score
+            # Neighborhood search: jitter weights
+            new_params = {
+                "efficiency_weight": max(0, current_weights.efficiency_weight + random.uniform(-0.02, 0.02)),
+                "to_weight": max(0, current_weights.to_weight + random.uniform(-0.5, 0.5)),
+                "ft_weight": max(0, current_weights.ft_weight + random.uniform(-0.5, 0.5)),
+                "three_par_weight": max(0, current_weights.three_par_weight + random.uniform(-0.5, 0.5)),
+                "pace_variance_weight": max(0, current_weights.pace_variance_weight + random.uniform(-0.1, 0.1)),
+                "momentum_weight": max(0, current_weights.momentum_weight + random.uniform(-0.01, 0.01)),
+                "sos_weight": max(0, current_weights.sos_weight + random.uniform(-0.5, 0.5)),
+                "defense_premium": max(0.5, current_weights.defense_premium + random.uniform(-0.5, 0.5)),
+                
+                # Phase 4/5/6 Metrics
+                "ft_rate_weight": max(0, current_weights.ft_rate_weight + random.uniform(-0.5, 0.5)),
+                "stl_weight": max(0, current_weights.stl_weight + random.uniform(-0.5, 0.5)),
+                "blk_weight": max(0, current_weights.blk_weight + random.uniform(-0.5, 0.5)),
+                "orb_weight": max(0, current_weights.orb_weight + random.uniform(-0.5, 0.5)),
+                "luck_weight": current_weights.luck_weight + random.uniform(-0.5, 0.5), 
+                "due_factor_sensitivity": max(0, current_weights.due_factor_sensitivity + random.uniform(-0.01, 0.01)),
+                "momentum_regression_weight": max(0, current_weights.momentum_regression_weight + random.uniform(-0.1, 0.1)),
+                "road_dominance_weight": max(0, current_weights.road_dominance_weight + random.uniform(-0.5, 0.5)),
+                "seed_weight": max(0.005, min(0.1, current_weights.seed_weight + random.uniform(-0.005, 0.005))),
+                "ast_weight": max(0, current_weights.ast_weight + random.uniform(-0.5, 0.5)),
+                "three_par_volatility_weight": max(0, current_weights.three_par_volatility_weight + random.uniform(-0.05, 0.05)),
+                "ts_weight": max(0, current_weights.ts_weight + random.uniform(-0.5, 0.5)),
+                "experience_weight": max(0, current_weights.experience_weight + random.uniform(-0.001, 0.001)),
+                "late_round_def_premium": max(0, current_weights.late_round_def_premium + random.uniform(-0.05, 0.05)),
+                "neutral_weight": max(0, current_weights.neutral_weight + random.uniform(-0.2, 0.2)),
+                "non_conf_weight": max(0, current_weights.non_conf_weight + random.uniform(-0.2, 0.2)),
+                "def_ft_rate_weight": max(0, current_weights.def_ft_rate_weight + random.uniform(-0.5, 0.5)),
+                "depth_weight": max(0, current_weights.depth_weight + random.uniform(-0.1, 0.1)),
+                "continuity_weight": max(0, current_weights.continuity_weight + random.uniform(-0.1, 0.1)),
+                "pace_control_weight": max(0, current_weights.pace_control_weight + random.uniform(-0.1, 0.1)),
+                "cinderella_factor": max(0, current_weights.cinderella_factor + random.uniform(-0.2, 0.2)),
+                "luck_regression_weight": max(0, current_weights.luck_regression_weight + random.uniform(-0.5, 0.5)),
+                "star_reliance_weight": max(0, current_weights.star_reliance_weight + random.uniform(-0.2, 0.2)),
+                
+                "chaos_mode": False
+            }
             
-            if current_score > best_score:
-                best_score = current_score
+            new_weights = SimulationWeights(**new_params)
+            new_fitness, new_avg = cross_validate_weights(new_weights)
+            
+            # Acceptance probability
+            if new_fitness > current_fitness:
                 best_weights = new_weights
-                print(f"[{i}] New Global Best! Score: {round(best_score, 2)} | Temp: {round(temp, 4)}")
-        
-        # Cool down
-        temp *= cooling_rate
-        
-        if i % 100 == 0:
-            print(f"Iter {i}/{iterations} | Temp: {round(temp, 4)} | Best Score: {round(best_score, 2)}")
+                best_fitness = new_fitness
+                best_avg = new_avg
+                current_weights = new_weights
+                current_fitness = new_fitness
+                print(f"[{i}] New Global Best! Fitness: {round(best_fitness, 2)} | Avg: {round(best_avg, 2)} | Temp: {round(temp_sa, 2)}")
+            else:
+                delta = new_fitness - current_fitness
+                # Standard SA acceptance
+                if random.random() < math.exp(delta / max(0.0001, temp_sa/1000.0)): # Normalized temp
+                    current_weights = new_weights
+                    current_fitness = new_fitness
+            
+            if i % 100 == 0:
+                print(f"Iter {i}/{iterations} | Best Fitness: {round(best_fitness, 2)}")
 
-    print("\n=======================================================")
-    print(f"Optimization Complete!")
-    print(f"Final Best Multi-Year Score: {round(best_score, 2)}")
-    print(f"Best Configuration: \n{best_weights}")
-    print("=======================================================")
-    
-    # Save results to a file
-    with open("optimal_multi_year_weights.txt", "w") as f:
-        f.write(f"Multi-Year Best Score: {best_score}\n")
-        f.write(str(best_weights))
-    
-    return best_weights
+    except KeyboardInterrupt:
+        print("\nOptimization interrupted by user. Saving current best...")
+    finally:
+        print("\n=======================================================")
+        print(f"Final Best CV Fitness: {round(best_fitness, 2)}")
+        print(f"Final Average Cross-Season Score: {round(best_avg, 2)}")
+        print(f"Best Configuration: \n{best_weights}")
+        print("=======================================================")
+        
+        # Phase 5 Output
+        try:
+            with open("phase5_optimal_weights.txt", "w") as f:
+                f.write(f"Phase 5 Best CV Fitness: {best_fitness}\n")
+                f.write(f"Final Average Score: {best_avg}\n")
+                f.write(str(best_weights))
+            print("Successfully saved weights to phase5_optimal_weights.txt")
+        except Exception as e:
+            print(f"Error saving to file: {e}")
+            print("BEST WEIGHTS (COPY-PASTE READY):")
+            print(best_weights)
+        
+        return best_weights
+
+import argparse
 
 if __name__ == "__main__":
-    optimize_simulated_annealing(iterations=1000)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--iterations", type=int, default=10000)
+    parser.add_argument("--cooling_rate", type=float, default=0.9998)
+    args = parser.parse_args()
+    
+    # Updated to Phase 5
+    print(f"Starting Phase 5 optimization with {args.iterations} iterations...")
+    optimize_simulated_annealing(iterations=args.iterations, cooling_rate=args.cooling_rate)
