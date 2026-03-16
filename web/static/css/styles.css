@@ -205,6 +205,64 @@ main {
     transform: translateX(5px);
 }
 
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.control-row input[type="range"] {
+    flex: 1;
+}
+
+.premium-number {
+    width: 65px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: var(--accent-gold);
+    padding: 0.3rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.premium-number:focus {
+    border-color: var(--accent-gold);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Factor Guide Styles */
+.guide-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.guide-item {
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.guide-item strong {
+    display: block;
+    color: var(--accent-gold);
+    margin-bottom: 0.2rem;
+}
+
+.guide-item p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
 .team-info {
     display: flex;
     align-items: center;

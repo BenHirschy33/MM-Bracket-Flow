@@ -26,20 +26,26 @@ function debounceSim() {
 }
 
 function resetToOptimal() {
-    const w = appState.optimalWeights;
-    document.getElementById('weight-sos').value = w.sos;
-    document.getElementById('weight-trb').value = w.trb;
-    document.getElementById('weight-to').value = w.to;
-    document.getElementById('weight-eff').value = w.efficiency;
-    document.getElementById('weight-momentum').value = w.momentum;
-    
-    // Update labels
-    document.getElementById('val-sos').textContent = w.sos;
-    document.getElementById('val-trb').textContent = w.trb;
-    document.getElementById('val-to').textContent = w.to;
-    document.getElementById('val-eff').textContent = w.efficiency;
-    document.getElementById('val-momentum').textContent = w.momentum;
-    
+    const weights = appState.optimalWeights;
+    const mapping = {
+        'weight-sos': weights.sos,
+        'weight-trb': weights.trb,
+        'weight-to': weights.to,
+        'weight-eff': weights.efficiency,
+        'weight-momentum': weights.momentum
+    };
+
+    for (const [id, val] of Object.entries(mapping)) {
+        const slider = document.getElementById(id);
+        // Extract the stat name (e.g., 'sos' from 'weight-sos')
+        const statName = id.split('-')[1];
+        const numInput = document.getElementById('num-' + statName);
+        const valLabel = document.getElementById('val-' + statName);
+
+        if (slider) slider.value = val;
+        if (numInput) numInput.value = val;
+        if (valLabel) valLabel.textContent = val; // Update the display label
+    }
     runSimulation();
 }
 
@@ -305,13 +311,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Real-time Slider updates (debounced)
-    const sliders = ['weight-sos', 'weight-trb', 'weight-to', 'weight-eff', 'weight-momentum'];
-    sliders.forEach(id => {
-        const slider = document.getElementById(id);
-        const label = document.getElementById('val-' + id.split('-')[1]);
+    // Real-time Slider & Number updates (bidirectional sync)
+    const factorIds = ['sos', 'trb', 'to', 'eff', 'momentum'];
+    factorIds.forEach(id => {
+        const slider = document.getElementById(`weight-${id}`);
+        const numInput = document.getElementById(`num-${id}`);
+        
+        // Sync Slider -> Number
         slider.addEventListener('input', (e) => {
-            label.textContent = e.target.value;
+            numInput.value = e.target.value;
+            debounceSim();
+        });
+        
+        // Sync Number -> Slider
+        numInput.addEventListener('input', (e) => {
+            slider.value = e.target.value;
             debounceSim();
         });
     });
