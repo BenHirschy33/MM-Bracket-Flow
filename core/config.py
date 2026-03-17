@@ -209,13 +209,6 @@ class SimulationWeights:
     fatigue_sensitivity: float = 0.0      # Penalty for short rest (R32, E8, Champ)
     bench_rest_bonus: float = 0.0         # Rewards deep teams on short rest
 
-    # Intuition weight: Disabled
-    intuition_weight: float = 0.0
-
-    # General modifiers
-    # Multiplier to value defense slightly more in March (since defense travels)
-    defense_premium: float = 7.236
-
     # Chaos Engine Toggle (Phase 3)
     chaos_mode: bool = False
 
@@ -251,7 +244,6 @@ DEFAULT_WEIGHTS = SimulationWeights(
     neutral_weight=1.404,
     non_conf_weight=0.420,
     def_ft_rate_weight=1.092,
-    intuition_weight=0.0,
     defense_premium=7.395,
     orb_density_weight=0.187,
     continuation_rule_bias=0.005,

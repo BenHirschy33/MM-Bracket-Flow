@@ -10,6 +10,7 @@ from pathlib import Path
 
 from core.parser import load_teams, load_bracket
 from core.simulator import SimulatorEngine
+from core.team_model import Team
 from core.config import DEFAULT_WEIGHTS, SimulationWeights
 
 app = Flask(__name__)
@@ -64,6 +65,22 @@ def get_teams(year):
     try:
         base_dir = Path(f"years/{year}/data")
         teams = load_teams(base_dir / "team_stats.csv", year=year)
+        
+        # Merge seeds from bracket
+        try:
+            bracket = load_bracket(base_dir / "chalk_bracket.json")
+            seeds_by_name = {}
+            for reg_name, seeds in bracket.get("regions", {}).items():
+                for s_str, name in seeds.items():
+                    # Extract numeric seed
+                    seeds_by_name[name] = int(''.join(c for c in s_str if c.isdigit()))
+            
+            for name, t in teams.items():
+                if name in seeds_by_name:
+                    t.seed = seeds_by_name[name]
+        except Exception:
+            pass # Fallback to CSV seeds
+
         # Convert to serializable dict
         teams_list = []
         for name, t in teams.items():
@@ -174,8 +191,21 @@ def get_matchup_detail():
     try:
         base_dir = Path(f"years/{year}/data")
         teams = load_teams(base_dir / "team_stats.csv", year=year)
+        
+        # Synchronize seeds from bracket
+        bracket = load_bracket(base_dir / "chalk_bracket.json")
+        seeds_by_name = {}
+        for reg_name, seeds in bracket.get("regions", {}).items():
+            for s_str, name in seeds.items():
+                seeds_by_name[name] = int(''.join(c for c in s_str if c.isdigit()))
+
         t_a = teams.get(team_a_name)
         t_b = teams.get(team_b_name)
+        
+        if t_a and t_a.name in seeds_by_name:
+            t_a.seed = seeds_by_name[t_a.name]
+        if t_b and t_b.name in seeds_by_name:
+            t_b.seed = seeds_by_name[t_b.name]
         
         if not t_a or not t_b:
             return jsonify({"error": "Team not found"}), 404
@@ -222,11 +252,11 @@ def get_matchup_detail():
         luck_a = getattr(t_a, 'luck', 0.0) or 0.0
         luck_b = getattr(t_b, 'luck', 0.0) or 0.0
         if abs(luck_a) > 0.05 or abs(luck_b) > 0.05:
-            luck_diff = luck_b - luck_a
+            # If luck_b > luck_a, t_b is overachieving
             analysis.append({
                 "factor": "Luck Regression",
                 "importance": "Medium",
-                "description": f"{t_a.name if luck_diff > 0 else t_b.name} has consistently overachieved their analytical profile; they are statistically 'due' for regression."
+                "description": f"{t_b.name if luck_b > luck_a else t_a.name} has consistently overachieved their analytical profile; they are statistically 'due' for regression."
             })
 
         # Aggressiveness (Continuation Rule Proxy)
@@ -236,7 +266,7 @@ def get_matchup_detail():
             analysis.append({
                 "factor": "Aggression Index",
                 "importance": "High",
-                "description": f"{t_a.name if ftr_a > ftr_b else t_b.name}'s ability to draw fouls aligns perfectly with the 2025 'Continuation' emphasis."
+                "description": f"{t_a.name if ftr_a > ftr_b else t_b.name}'s ability to draw fouls aligns perfectly with the {year} 'Continuation' emphasis."
             })
 
         # Star Reliance
@@ -288,6 +318,7 @@ def run_full_sim():
         mode = data.get('mode', 'deterministic')
         weights_data = data.get('weights', {})
         locks = data.get('locks', {})
+        volatility = data.get('volatility', 0.0)
         
         custom_weights = extract_weights(weights_data)
     else:
@@ -305,6 +336,7 @@ def run_full_sim():
         teams_data = load_teams(base_dir / "team_stats.csv", year=year)
         bracket_data = load_bracket(base_dir / "chalk_bracket.json")
         engine = SimulatorEngine(teams=teams_data, weights=custom_weights)
+        engine.volatility = volatility # Inject volatility
         
         sim_trace = {
             "regions": {},
@@ -321,23 +353,31 @@ def run_full_sim():
             
             # Round 1 Setup
             for high_seed, low_seed in SEED_MATCHUPS:
-                ht_name = seeds_map.get(str(high_seed))
-                lt_name = seeds_map.get(str(low_seed))
+                # Try direct seed, then 'a' suffix, then 'b' suffix
+                def get_team_from_seed(seed_str):
+                    if seed_str in seeds_map: return seeds_map[seed_str]
+                    if f"{seed_str}a" in seeds_map: return seeds_map[f"{seed_str}a"]
+                    if f"{seed_str}b" in seeds_map: return seeds_map[f"{seed_str}b"]
+                    return None
+
+                ht_name = get_team_from_seed(str(high_seed))
+                lt_name = get_team_from_seed(str(low_seed))
                 
                 ht = teams_data.get(ht_name)
                 lt = teams_data.get(lt_name)
                 
-                if ht and lt:
-                    # Injected seeds for teams that are found in the bracket config
+                # Robustness: If team missing, insert a placeholder to prevent list collapse
+                if not ht:
+                    ht = Team(name=f"TBD ({high_seed})", seed=int(high_seed), off_efficiency=100.0, def_efficiency=100.0, off_ppg=70.0, def_ppg=70.0)
+                else:
                     ht.seed = int(high_seed)
+                
+                if not lt:
+                    lt = Team(name=f"TBD ({low_seed})", seed=int(low_seed), off_efficiency=100.0, def_efficiency=100.0, off_ppg=70.0, def_ppg=70.0)
+                else:
                     lt.seed = int(low_seed)
-                    current_round_teams.extend([ht, lt])
-                elif ht:
-                    ht.seed = int(high_seed)
-                    current_round_teams.append(ht)
-                elif lt:
-                    lt.seed = int(low_seed)
-                    current_round_teams.append(lt)
+
+                current_round_teams.extend([ht, lt])
             
             if not current_round_teams:
                 continue
@@ -403,8 +443,8 @@ def run_full_sim():
             ff_2 = engine.simulate_game(final_four_field[2], final_four_field[3], mode=mode)
         
         sim_trace["final_four"] = [
-            {"team_a": final_four_field[0].name, "team_b": final_four_field[1].name, "winner": ff_1.name},
-            {"team_a": final_four_field[2].name, "team_b": final_four_field[3].name, "winner": ff_2.name}
+            {"team_a": final_four_field[0].name, "seed_a": final_four_field[0].seed, "team_b": final_four_field[1].name, "seed_b": final_four_field[1].seed, "winner": ff_1.name},
+            {"team_a": final_four_field[2].name, "seed_a": final_four_field[2].seed, "team_b": final_four_field[3].name, "seed_b": final_four_field[3].seed, "winner": ff_2.name}
         ]
         
         champ_locks = locks.get('championship', {})
@@ -415,7 +455,7 @@ def run_full_sim():
         else:
             champ = engine.simulate_game(ff_1, ff_2, mode=mode)
             
-        sim_trace["championship"] = {"team_a": ff_1.name, "team_b": ff_2.name, "winner": champ.name}
+        sim_trace["championship"] = {"team_a": ff_1.name, "seed_a": ff_1.seed, "team_b": ff_2.name, "seed_b": ff_2.seed, "winner": champ.name}
         sim_trace["winner"] = champ.name
         
         return jsonify(sim_trace)

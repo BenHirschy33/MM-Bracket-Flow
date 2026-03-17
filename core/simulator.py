@@ -11,6 +11,7 @@ class SimulatorEngine:
         self.teams = teams
         self.weights = weights
         self.locks = locks or {}
+        self.volatility = 0.0 # Blending factor (0.0 = pure metrics, 1.0 = pure random)
         # Stateful tracking for "Due Factor" (Reset per simulation run)
         self.upset_count = 0
         self.total_games = 0
@@ -21,13 +22,17 @@ class SimulatorEngine:
         self.total_games = 0
 
     def simulate_game(self, team_a: Team, team_b: Team, mode: str = "deterministic") -> Team:
-        """Simulates a game and returns the winner."""
+        """Simulates a game and returns the winner, incorporating Volatility Index."""
         prob_a = self.calculate_win_probability(team_a, team_b)
         
+        # Apply Volatility Index blending
+        # If volatility is 1.0, prob_a becomes 0.5 (perfect coin flip)
+        blended_prob = ((1.0 - self.volatility) * prob_a) + (self.volatility * 0.5)
+        
         if mode == "deterministic":
-            return team_a if prob_a >= 0.5 else team_b
+            return team_a if blended_prob >= 0.5 else team_b
         else:
-            return team_a if random.random() < prob_a else team_b
+            return team_a if random.random() < blended_prob else team_b
 
     def _get_metric(self, team, attr, default=0.0):
         """Safely gets a numeric metric from a team object, defaulting if None."""
@@ -125,7 +130,7 @@ class SimulatorEngine:
         # 2025 FORMULAS (Grit, Aggression, Stability)
         grit_a = 0.4 * (100 - self._get_metric(team_a, 'def_efficiency', 100)) + 0.3 * self._get_metric(team_a, 'off_orb_pct', 25.0) + 0.3 * abs(min(0, self._get_metric(team_a, 'luck', 0.0)))
         grit_b = 0.4 * (100 - self._get_metric(team_b, 'def_efficiency', 100)) + 0.3 * self._get_metric(team_b, 'off_orb_pct', 25.0) + 0.3 * abs(min(0, self._get_metric(team_b, 'luck', 0.0)))
-        final_probability += (grit_a - grit_b) * 0.01 * self.weights.defense_premium
+        final_probability += (grit_a - grit_b) * 0.001 * self.weights.defense_premium
 
         agg_a = 0.3 * self._get_metric(team_a, 'pace', 70) + 0.4 * self._get_metric(team_a, 'off_ft_rate', 0.3) + 0.3 * self._get_metric(team_a, 'def_to_pct', 15.0)
         agg_b = 0.3 * self._get_metric(team_b, 'pace', 70) + 0.4 * self._get_metric(team_b, 'off_ft_rate', 0.3) + 0.3 * self._get_metric(team_b, 'def_to_pct', 15.0)
@@ -166,6 +171,7 @@ class SimulatorEngine:
         
         control_a = abs(self._get_metric(team_a, 'pace', 70.0) - 70.0) * ppp_a
         control_b = abs(self._get_metric(team_b, 'pace', 70.0) - 70.0) * ppp_b
+        control_delta = control_a - control_b
         final_probability += (control_delta * 0.01) * self.weights.pace_control_weight
 
         # 3PAr Advantage
@@ -399,7 +405,8 @@ class SimulatorEngine:
             # Does their 3pt def hold up against elite opponents?
             def_3a = (team_a.def_efficiency or 100) * (team_a.sos or 0)
             def_3b = (team_b.def_efficiency or 100) * (team_b.sos or 0)
-            final_probability += (def_3b - def_3a) * 0.0001 * self.weights.defense_premium
+            # Use smaller scale to prevent probability collapse
+            final_probability += (def_3b - def_3a) * 0.00002 * self.weights.defense_premium
 
         # Round 30: Rust vs Rhythm
         # If a team won their conf tourney (tourney_momentum=1.0) but is a high seed (rest),
@@ -1066,8 +1073,6 @@ class SimulatorEngine:
             p_a = 0.10 if any(ped in (team_a.name or "").lower() for ped in pedigree) else 0.0
             p_b = 0.10 if any(ped in (team_b.name or "").lower() for ped in pedigree) else 0.0
             final_probability += (p_a - p_b) * self.weights.championship_pedigree_weight
-
-        # (Implicitly handled by the optimization of all weights simultaneously)
 
         # Clamp to valid probability bounds [0.01, 0.99]
         final_probability = max(0.01, min(0.99, final_probability))

@@ -8,6 +8,50 @@ except ImportError:
     yaml = None
 from .team_model import Team
 
+def normalize_team_name(name: str) -> str:
+    """
+    Standardizes team names to resolve 'St.' vs 'Saint' vs 'State' ambiguity
+    and handle common aliases (e.g. UMBC).
+    """
+    if not name: return ""
+    
+    # 1. Basic Cleaning
+    name = name.strip()
+    
+    # 2. Static Alias Mapping (High Priority)
+    aliases = {
+        "UMBC": "Maryland-Baltimore County",
+        "UPenn": "Pennsylvania",
+        "Penn": "Pennsylvania",
+        "VPI": "Virginia Tech",
+        "Ole Miss": "Mississippi",
+        "LSU": "Louisiana State",
+        "N.C. State": "NC State",
+        "North Carolina St.": "NC State",
+        "UNLV": "Nevada-Las Vegas",
+        "USC": "Southern California",
+        "SMU": "Southern Methodist",
+        "TCU": "Texas Christian",
+        "BYU": "Brigham Young"
+    }
+    if name in aliases:
+        return aliases[name]
+
+    # 3. Contextual 'St.' Rules
+    # Rule A: Trailing 'St.' -> 'State' (e.g. Michigan St. -> Michigan State)
+    if name.endswith(" St."):
+        name = name[:-4] + " State"
+    elif name.endswith(" St"):
+        name = name[:-3] + " State"
+        
+    # Rule B: Leading 'St.' -> 'Saint' (e.g. St. John's -> Saint John's)
+    if name.startswith("St. "):
+        name = "Saint " + name[4:]
+    elif name.startswith("St "):
+        name = "Saint " + name[3:]
+        
+    return name
+
 def load_teams(csv_filepath: str | Path, year: int = None) -> Dict[str, Team]:
     """
     Parses a team_stats.csv file and returns a dictionary mapping team names
@@ -92,11 +136,15 @@ def load_teams(csv_filepath: str | Path, year: int = None) -> Dict[str, Team]:
                 
                 # Try alternatives if not matched
                 if not matched_team:
-                    alt_names = [school.replace("St.", "State"), school.replace("State", "St.")]
-                    for alt in alt_names:
-                        if alt in teams:
-                            matched_team = teams[alt]
-                            break
+                    norm_school = normalize_team_name(school)
+                    if norm_school in teams:
+                        matched_team = teams[norm_school]
+                    else:
+                        # Secondary check: loop through normalized keys
+                        for t_name, t_obj in teams.items():
+                            if normalize_team_name(t_name) == norm_school:
+                                matched_team = t_obj
+                                break
 
                 if matched_team:
                     # Metrics (approximate indices based on previous audit)

@@ -33,12 +33,13 @@
 }
 
 .settings-modal.center {
-    right: 50%;
-    transform: translate(50%, 0);
+    left: 50%;
+    transform: translateX(-50%);
     top: -100vh;
     bottom: auto;
     height: auto;
-    width: 500px;
+    width: 600px;
+    z-index: 1100;
     transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -109,18 +110,115 @@
     font-size: 1rem;
 }
 
-/* 4-Quadrant Adjustments */
+/* 4-Quadrant Tree Strategy */
 .espn-layout {
     display: grid;
-    grid-template-columns: 1fr 200px 1fr !important;
+    grid-template-columns: repeat(4, 1fr) 2fr repeat(4, 1fr) !important;
     grid-template-areas: 
-        "east final-four west"
-        "south final-four midwest" !important;
-    gap: 3rem;
+        "east-r64 east-r32 east-r16 east-r8 final-four west-r8 west-r16 west-r32 west-r64"
+        "south-r64 south-r32 south-r16 south-r8 final-four mid-r8 mid-r16 mid-r32 mid-r64" !important;
+    gap: 1.5rem;
+    padding: 2rem;
+    overflow-x: auto;
+    align-items: center;
 }
 
 .region-block {
-    padding: 2rem !important;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.region-block[data-region="East"] { grid-row: 1; grid-column: 1 / 5; }
+.region-block[data-region="South"] { grid-row: 2; grid-column: 1 / 5; }
+.region-block[data-region="West"] { grid-row: 1; grid-column: 6 / 10; }
+.region-block[data-region="Midwest"] { grid-row: 2; grid-column: 6 / 10; }
+.final-four-block { 
+    grid-row: 1 / 3; 
+    grid-column: 5; 
+    align-self: center;
+    background: linear-gradient(180deg, rgba(255, 184, 0, 0.05), transparent);
+    border-radius: 20px;
+    padding: 1.5rem;
+}
+
+.team-line.locked {
+    background: linear-gradient(90deg, rgba(255, 184, 0, 0.2), transparent) !important;
+    border-left: 3px solid var(--accent-gold) !important;
+    box-shadow: 0 0 20px var(--accent-gold-glow) !important;
+    position: relative;
+    z-index: 5;
+}
+
+.team-line.locked .lock-icon {
+    color: var(--accent-gold);
+    opacity: 1;
+    text-shadow: 0 0 10px var(--accent-gold);
+}
+
+.rounds-flex {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    min-width: max-content;
+}
+
+/* Left-Side Direction (East/South) */
+.region-block[data-region="East"] .rounds-flex,
+.region-block[data-region="South"] .rounds-flex {
+    flex-direction: row;
+}
+
+/* Right-Side Direction (West/Midwest) */
+.region-block[data-region="West"] .rounds-flex,
+.region-block[data-region="Midwest"] .rounds-flex {
+    flex-direction: row-reverse;
+}
+
+.round-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    height: 100%;
+    min-width: 140px;
+    gap: 1rem;
+}
+
+.matchup-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.6rem;
+    position: relative;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.matchup-card:hover {
+    border-color: var(--accent-gold);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* Connector Lines Simulation (Simplified CSS variant) */
+.round-column { position: relative; }
+.round-column::after {
+    content: '';
+    position: absolute;
+    right: -0.75rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--glass-border);
+    opacity: 0.3;
+}
+.region-block[data-region="West"] .round-column::after,
+.region-block[data-region="Midwest"] .round-column::after {
+    left: -0.75rem;
+    right: auto;
 }
 
 * {

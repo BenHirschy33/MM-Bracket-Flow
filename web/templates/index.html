@@ -25,10 +25,13 @@
                 <option value="2025">2025 (Historical)</option>
                 <option value="2024">2024 (Historical)</option>
             </select>
-            <button id="settings-toggle-btn" class="premium-btn secondary">⚙️ Simulation Guru</button>
-            <button id="field-stats-toggle-btn" class="premium-btn secondary">📊 Field Stats</button>
-            <button id="research-lab-toggle-btn" class="premium-btn secondary">🔬 Research Lab</button>
-            <button id="run-sim-btn" class="premium-btn primary">Run Hyper-Simulation</button>
+            <div class="tab-nav">
+                <button class="tab-btn active" data-mode="custom">Custom Sim</button>
+                <button class="tab-btn" data-mode="average">Highest Average</button>
+                <button class="tab-btn" data-mode="perfect">Perfect Bracket</button>
+            </div>
+            <button id="settings-toggle-btn" class="premium-btn secondary">⚙️ Guru</button>
+            <button id="run-sim-btn" class="premium-btn primary">Run Simulation</button>
         </div>
     </header>
 
@@ -55,15 +58,15 @@
                                 <div class="setting-item">
                                     <label>Efficiency Index</label>
                                     <div class="control-row">
-                                        <input type="range" id="weight-eff" min="0" max="0.1" step="0.001" value="0.022">
-                                        <input type="number" id="num-eff" min="0" max="0.1" step="0.001" value="0.022" class="premium-number">
+                                        <input type="range" id="weight-eff" min="0" max="0.5" step="0.001" value="0.022">
+                                        <input type="number" id="num-eff" min="0" max="0.5" step="0.001" value="0.022" class="premium-number">
                                     </div>
                                 </div>
                                 <div class="setting-item">
                                     <label>Strength of Schedule</label>
                                     <div class="control-row">
-                                        <input type="range" id="weight-sos" min="0" max="20" step="0.1" value="7.6">
-                                        <input type="number" id="num-sos" min="0" max="20" step="0.1" value="7.6" class="premium-number">
+                                        <input type="range" id="weight-sos" min="0" max="50" step="0.1" value="7.6">
+                                        <input type="number" id="num-sos" min="0" max="50" step="0.1" value="7.6" class="premium-number">
                                     </div>
                                 </div>
                             </div>
@@ -83,8 +86,8 @@
                                 <div class="setting-item">
                                     <label>Momentum</label>
                                     <div class="control-row">
-                                        <input type="range" id="weight-momentum" min="0" max="0.5" step="0.01" value="0.07">
-                                        <input type="number" id="num-momentum" min="0" max="0.5" step="0.01" value="0.07" class="premium-number">
+                                        <input type="range" id="weight-momentum" min="0" max="2.0" step="0.01" value="0.07">
+                                        <input type="number" id="num-momentum" min="0" max="2.0" step="0.01" value="0.07" class="premium-number">
                                     </div>
                                 </div>
                                 <div class="setting-item">
@@ -98,9 +101,22 @@
                         </div>
                         
                         <!-- Advanced (Divine) Logic -->
+                        <div class="control-group">
+                            <h3 class="group-title">Advanced Research (Divine)</h3>
+                            <div class="controls-grid">
+                                <div class="setting-item">
+                                    <label>Volatility Index (Chaos)</label>
+                                    <div class="control-row">
+                                        <input type="range" id="weight-volatility" min="0" max="100" step="1" value="0">
+                                        <span id="val-volatility" class="premium-number">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="control-group collapsible">
                             <div class="group-header">
-                                <h3 class="group-title">Advanced Research (Divine)</h3>
+                                <h3 class="group-title">Metric Deep Dive</h3>
                                 <span class="toggle-icon">▼</span>
                             </div>
                             <div class="collapsible-content">

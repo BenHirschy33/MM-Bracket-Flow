@@ -2,7 +2,7 @@ import json
 import sys
 from pathlib import Path
 from core.simulator import SimulatorEngine
-from core.parser import load_teams, load_bracket
+from core.parser import load_teams, load_bracket, normalize_team_name
 from core.config import SimulationWeights
 
 SEED_MATCHUPS = [(1, 16), (8, 9), (5, 12), (4, 13), (6, 11), (3, 14), (7, 10), (2, 15)]
@@ -41,13 +41,15 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
     def get_team_safely(name, teams_dict):
         if name is None: return None
         if name in teams_dict: return teams_dict[name]
-        alt_names = [
-            name.replace("St.", "State"), name.replace("State", "St."),
-            name.replace(" (NY)", ""), name.replace(" (NC)", ""),
-            name + " State", name + " St."
-        ]
-        for alt in alt_names:
-            if alt in teams_dict: return teams_dict[alt]
+        
+        norm_name = normalize_team_name(name)
+        if norm_name in teams_dict: return teams_dict[norm_name]
+        
+        # Secondary check: loop through normalized keys
+        for t_name, t_obj in teams_dict.items():
+            if normalize_team_name(t_name) == norm_name:
+                return t_obj
+                
         return None
 
     for _ in range(iterations):
