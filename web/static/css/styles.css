@@ -113,20 +113,32 @@
 /* 4-Quadrant Tree Strategy */
 .espn-layout {
     display: grid;
-    grid-template-columns: repeat(4, 1fr) 2fr repeat(4, 1fr) !important;
-    grid-template-areas: 
-        "east-r64 east-r32 east-r16 east-r8 final-four west-r8 west-r16 west-r32 west-r64"
-        "south-r64 south-r32 south-r16 south-r8 final-four mid-r8 mid-r16 mid-r32 mid-r64" !important;
-    gap: 1.5rem;
-    padding: 2rem;
-    overflow-x: auto;
-    align-items: center;
+    grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 1.5fr 0.8fr 0.8fr 1fr 1.2fr !important;
+    gap: 2.5rem;
+    padding: 3rem;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: top center;
+    width: max-content;
+    margin: 0 auto;
+}
+
+.bracket-stage {
+    overflow: auto;
+    cursor: grab;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    max-height: calc(100vh - 200px);
+}
+
+.bracket-stage:active {
+    cursor: grabbing;
 }
 
 .region-block {
     display: flex;
     flex-direction: column;
-    padding: 1rem !important;
+    padding: 0 !important;
     background: none !important;
     border: none !important;
     box-shadow: none !important;
@@ -136,13 +148,16 @@
 .region-block[data-region="South"] { grid-row: 2; grid-column: 1 / 5; }
 .region-block[data-region="West"] { grid-row: 1; grid-column: 6 / 10; }
 .region-block[data-region="Midwest"] { grid-row: 2; grid-column: 6 / 10; }
+
 .final-four-block { 
     grid-row: 1 / 3; 
     grid-column: 5; 
     align-self: center;
-    background: linear-gradient(180deg, rgba(255, 184, 0, 0.05), transparent);
-    border-radius: 20px;
-    padding: 1.5rem;
+    background: linear-gradient(180deg, rgba(255, 184, 0, 0.08), transparent);
+    border-radius: 24px;
+    padding: 2rem;
+    border: 1px solid rgba(255, 184, 0, 0.1);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
 }
 
 .team-line.locked {
@@ -277,13 +292,13 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem 4rem;
-    background: rgba(15, 18, 24, 0.8);
-    backdrop-filter: blur(20px);
+    padding: 1rem 3rem;
+    background: rgba(10, 12, 16, 0.85);
+    backdrop-filter: blur(30px);
     border-bottom: 1px solid var(--glass-border);
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 2000;
 }
 
 .glow-text {
@@ -305,10 +320,32 @@ body {
     margin-top: 0.2rem;
 }
 
-.nav-actions {
+.header-controls {
     display: flex;
-    gap: 1.5rem;
+    gap: 1rem;
     align-items: center;
+}
+
+.control-group-unified {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.25rem;
+    gap: 0.5rem;
+}
+
+.divider {
+    width: 1px;
+    height: 24px;
+    background: var(--glass-border);
+    margin: 0 0.5rem;
+}
+
+.action-group {
+    display: flex;
+    gap: 0.75rem;
 }
 
 .premium-select {

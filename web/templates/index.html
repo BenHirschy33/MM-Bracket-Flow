@@ -20,18 +20,24 @@
             <p class="subtitle">Advanced Prediction Engine</p>
         </div>
         <div class="header-controls">
-            <select id="year-select" class="premium-select">
-                <option value="2026">2026 Tournament</option>
-                <option value="2025">2025 (Historical)</option>
-                <option value="2024">2024 (Historical)</option>
-            </select>
-            <div class="tab-nav">
-                <button class="tab-btn active" data-mode="custom">Custom Sim</button>
-                <button class="tab-btn" data-mode="average">Highest Average</button>
-                <button class="tab-btn" data-mode="perfect">Perfect Bracket</button>
+            <div class="control-group-unified glass">
+                <select id="year-select" class="premium-select">
+                    <option value="2026">2026 Tournament</option>
+                    <option value="2025">2025 Historical</option>
+                    <option value="2024">2024 Historical</option>
+                    <option value="2023">2023 Historical</option>
+                </select>
+                <div class="divider"></div>
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-mode="custom">Custom Sim</button>
+                    <button class="tab-btn" data-mode="average">Highest Average</button>
+                    <button class="tab-btn" data-mode="perfect">Perfect Bracket</button>
+                </div>
             </div>
-            <button id="settings-toggle-btn" class="premium-btn secondary">⚙️ Guru</button>
-            <button id="run-sim-btn" class="premium-btn primary">Run Simulation</button>
+            <div class="action-group">
+                <button id="settings-toggle-btn" class="premium-btn secondary">⚙️ Simulation Settings</button>
+                <button id="run-sim-btn" class="premium-btn primary">Run Simulation</button>
+            </div>
         </div>
     </header>
 
@@ -40,7 +46,7 @@
         <div id="settings-panel" class="settings-modal">
             <div class="settings-content glass">
                 <div class="settings-header">
-                    <h2>Simulation Guru</h2>
+                    <h2>Simulation Settings</h2>
                     <button class="close-settings">&times;</button>
                 </div>
                 

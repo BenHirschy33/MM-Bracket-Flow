@@ -97,16 +97,43 @@ function toggleLock(region, round, teamName) {
         if (appState.locks[region][teamName]) {
             delete appState.locks[region][teamName];
         } else {
+            // Mutual exclusion for Final Four/Champ (one winner per slot)
+            // This is a bit complex due to how FF matches are structured, 
+            // but for simplicity, we'll allow replacing.
             appState.locks[region] = { [teamName]: true };
         }
     } else {
         if (!appState.locks.regions[region]) appState.locks.regions[region] = {};
         if (!appState.locks.regions[region][round]) appState.locks.regions[region][round] = {};
         
-        if (appState.locks.regions[region][round][teamName]) {
-            delete appState.locks.regions[region][round][teamName];
+        const isCurrentlyLocked = appState.locks.regions[region][round][teamName];
+        
+        if (isCurrentlyLocked) {
+            // Unlock: Cascade Backward (Unlock all subsequent appearances of this team)
+            for (let r = round; r <= 6; r++) {
+                if (appState.locks.regions[region]?.[r]) {
+                    delete appState.locks.regions[region][r][teamName];
+                }
+            }
+            // Also check FF/Champ
+            delete appState.locks.final_four[teamName];
+            delete appState.locks.championship[teamName];
         } else {
-            appState.locks.regions[region][round][teamName] = true;
+            // Lock: Mutual Exclusion (Unlock opponent in the same matchup)
+            const currentMatchups = appState.currentData?.regions?.[region]?.[round - 1]?.matchups;
+            if (currentMatchups) {
+                const matchup = currentMatchups.find(m => m.team_a === teamName || m.team_b === teamName);
+                if (matchup) {
+                    const opponent = matchup.team_a === teamName ? matchup.team_b : matchup.team_a;
+                    delete appState.locks.regions[region][round][opponent];
+                }
+            }
+            
+            // Lock: Cascade Forward (Lock all previous rounds to ensure they reached this round)
+            for (let r = 1; r <= round; r++) {
+                if (!appState.locks.regions[region][r]) appState.locks.regions[region][r] = {};
+                appState.locks.regions[region][r][teamName] = true;
+            }
         }
     }
     runSimulation();
@@ -272,30 +299,31 @@ function renderFinalFourBlock(ff, champ, container) {
         ffBlock.classList.add('hidden');
     }
     
-    ffBlock.innerHTML = `<h3>Final Four</h3>`;
+    ffBlock.innerHTML = `<h3 class="region-title">Final Four</h3>`;
     
     const displayArea = document.createElement('div');
     displayArea.className = 'region-display';
     
     const roundsContainer = document.createElement('div');
     roundsContainer.className = 'rounds-flex';
+    roundsContainer.style.justifyContent = 'center';
     
-    // Semis
-    const ffDiv = document.createElement('div');
-    ffDiv.className = 'round-column round-5';
-    ff.forEach(m => {
+    // Left Semi (East vs South)
+    const leftSemiDiv = document.createElement('div');
+    leftSemiDiv.className = 'round-column round-5 left-semi';
+    if (ff[0]) {
         const mDiv = document.createElement('div');
         mDiv.className = 'matchup-card';
-        mDiv.appendChild(createTeamLine('final_four', 1, m.team_a, m.seed_a, m.winner === m.team_a, ''));
-        mDiv.appendChild(createTeamLine('final_four', 1, m.team_b, m.seed_b, m.winner === m.team_b, ''));
-        ffDiv.appendChild(mDiv);
-    });
+        mDiv.appendChild(createTeamLine('final_four', 1, ff[0].team_a, ff[0].seed_a, ff[0].winner === ff[0].team_a, ''));
+        mDiv.appendChild(createTeamLine('final_four', 1, ff[0].team_b, ff[0].seed_b, ff[0].winner === ff[0].team_b, ''));
+        leftSemiDiv.appendChild(mDiv);
+    }
     
-    // Champ
+    // Champ (Middle)
     const champDiv = document.createElement('div');
-    champDiv.className = 'round-column round-6';
+    champDiv.className = 'round-column round-6 championship-col';
     const cCard = document.createElement('div');
-    cCard.className = 'matchup-card';
+    cCard.className = 'matchup-card champ-card';
     cCard.appendChild(createTeamLine('championship', 1, champ.team_a, champ.seed_a, champ.winner === champ.team_a, ''));
     cCard.appendChild(createTeamLine('championship', 1, champ.team_b, champ.seed_b, champ.winner === champ.team_b, ''));
     
@@ -306,10 +334,22 @@ function renderFinalFourBlock(ff, champ, container) {
         trophy.innerHTML = `🏆 ${champ.winner} 🏆`;
         cCard.appendChild(trophy);
     }
-    
     champDiv.appendChild(cCard);
-    roundsContainer.appendChild(ffDiv);
+
+    // Right Semi (West vs Midwest)
+    const rightSemiDiv = document.createElement('div');
+    rightSemiDiv.className = 'round-column round-5 right-semi';
+    if (ff[1]) {
+        const mDiv = document.createElement('div');
+        mDiv.className = 'matchup-card';
+        mDiv.appendChild(createTeamLine('final_four', 1, ff[1].team_a, ff[1].seed_a, ff[1].winner === ff[1].team_a, ''));
+        mDiv.appendChild(createTeamLine('final_four', 1, ff[1].team_b, ff[1].seed_b, ff[1].winner === ff[1].team_b, ''));
+        rightSemiDiv.appendChild(mDiv);
+    }
+    
+    roundsContainer.appendChild(leftSemiDiv);
     roundsContainer.appendChild(champDiv);
+    roundsContainer.appendChild(rightSemiDiv);
     displayArea.appendChild(roundsContainer);
     ffBlock.appendChild(displayArea);
     container.appendChild(ffBlock);
@@ -480,6 +520,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (numInput) numInput.value = e.target.value;
             const label = document.getElementById(`val-${id}`);
             if (label) label.textContent = e.target.value;
+            
+            // Auto-switch to Custom Sim mode
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.tab-btn[data-mode="custom"]').classList.add('active');
+            appState.mode = 'custom';
+            
             debounceSim();
         });
         if (numInput) {
@@ -545,6 +591,50 @@ document.addEventListener('DOMContentLoaded', () => {
     initWeights();
     fetchTeams(appState.year);
     runSimulation();
+
+    // Zoom and Pan for Bracket
+    const stage = document.querySelector('.bracket-stage');
+    const container = document.getElementById('bracket-container');
+    let scale = 1;
+    let isPanning = false;
+    let startX, startY, scrollLeft, scrollTop;
+
+    stage.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            scale += e.deltaY * -0.001;
+            scale = Math.min(Math.max(0.5, scale), 2);
+            container.style.transform = `scale(${scale})`;
+        }
+    });
+
+    stage.addEventListener('mousedown', (e) => {
+        isPanning = true;
+        stage.classList.add('active');
+        startX = e.pageX - stage.offsetLeft;
+        startY = e.pageY - stage.offsetTop;
+        scrollLeft = stage.scrollLeft;
+        scrollTop = stage.scrollTop;
+    });
+
+    stage.addEventListener('mouseleave', () => {
+        isPanning = false;
+    });
+
+    stage.addEventListener('mouseup', () => {
+        isPanning = false;
+    });
+
+    stage.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        e.preventDefault();
+        const x = e.pageX - stage.offsetLeft;
+        const y = e.pageY - stage.offsetTop;
+        const walkX = (x - startX) * 1.5;
+        const walkY = (y - startY) * 1.5;
+        stage.scrollLeft = scrollLeft - walkX;
+        stage.scrollTop = scrollTop - walkY;
+    });
 });
 
 // Expose for debugging/subagents
