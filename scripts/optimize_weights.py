@@ -119,6 +119,10 @@ def optimize_simulated_annealing(iterations=10000, temp=2.0, cooling_rate=0.9998
                 "coach_tournament_weight": max(0, current_weights.coach_tournament_weight + random.uniform(-0.1, 0.1)),
                 "tempo_upset_weight": max(0, current_weights.tempo_upset_weight + random.uniform(-0.05, 0.05)),
                 
+                # Phase 5: Fatigue & Orchestration
+                "fatigue_sensitivity": max(0, current_weights.fatigue_sensitivity + random.uniform(-0.1, 0.1)),
+                "bench_rest_bonus": max(0, current_weights.bench_rest_bonus + random.uniform(-0.1, 0.1)),
+
                 "chaos_mode": False
             }
             
@@ -177,8 +181,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--iterations", type=int, default=10000)
     parser.add_argument("--cooling_rate", type=float, default=0.9998)
+    parser.add_argument("--modern_only", action="store_true", help="Only evaluate on 2018-2025")
     args = parser.parse_args()
     
+    if args.modern_only:
+        YEARS = [2018, 2019, 2021, 2022, 2023, 2024, 2025]
+        print(f"MODERN MODE: Evaluating on {YEARS}")
+
     # Updated to Phase 5
     print(f"Starting Phase 5 optimization with {args.iterations} iterations...")
     optimize_simulated_annealing(iterations=args.iterations, cooling_rate=args.cooling_rate)

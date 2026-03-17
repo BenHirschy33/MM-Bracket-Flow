@@ -133,6 +133,20 @@
                                     <input type="number" id="num-tempo-upset" min="0" max="0.5" step="0.01" value="0.08" class="premium-number">
                                 </div>
                             </div>
+                            <div class="setting-item">
+                                <label>Fatigue Sensitivity</label>
+                                <div class="control-row">
+                                    <input type="range" id="weight-fatigue" min="0" max="1" step="0.05" value="0.2">
+                                    <input type="number" id="num-fatigue" min="0" max="1" step="0.05" value="0.2" class="premium-number">
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label>Bench Depth Bonus</label>
+                                <div class="control-row">
+                                    <input type="range" id="weight-bench" min="0" max="1" step="0.05" value="0.15">
+                                    <input type="number" id="num-bench" min="0" max="1" step="0.05" value="0.15" class="premium-number">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -180,6 +194,14 @@
                     <div class="guide-item">
                         <strong>Tempo Upset Factor</strong>
                         <p>Underdogs who play below 65 adjusted tempo deliberately compress the talent gap. Successful Cinderellas rank outside the top 100 in KenPom tempo.</p>
+                    </div>
+                    <div class="guide-item">
+                        <strong>Fatigue Sensitivity</strong>
+                        <p>Applies a win probability penalty in the second game of a weekend (R32, E8). Teams that play at a fast tempo are penalized more on short rest.</p>
+                    </div>
+                    <div class="guide-item">
+                        <strong>Bench Depth Bonus</strong>
+                        <p>Rewards teams with high bench usage. Deep rotations mitigate the effects of fatigue on short rest, providing a crucial edge in Sunday/Tuesday games.</p>
                     </div>
                     <div class="guide-item">
                         <strong>Luck Regression</strong>

@@ -1,125 +1,84 @@
-
 import os
 import time
-import subprocess
 import json
+import subprocess
 import logging
 from datetime import datetime
+from pathlib import Path
 
-# Paths
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SYNC_FILE = os.path.join(BASE_DIR, "docs", "agent_sync.json")
-STATUS_FILE = os.path.join(BASE_DIR, "docs", "optimization_status.txt")
-INDICATORS_FILE = os.path.join(BASE_DIR, "docs", "spec", "v2025_indicators.json")
-OPTIMIZE_SCRIPT = os.path.join(BASE_DIR, "scripts", "optimize_weights.py")
-
+# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(os.path.join(BASE_DIR, "autonomous_optimizer.log")),
+        logging.FileHandler("agents/optimization/orchestrator.log"),
         logging.StreamHandler()
     ]
 )
 
-def log_heartbeat(iteration, fitness, avg_score):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    status_content = f"""OPTIMIZATION HEARTBEAT
-TIMESTAMP: {timestamp}
-STATUS: Deep Sweep Active
-CURRENT CYCLE ITERATION: {iteration}
-CURRENT BEST FITNESS: {fitness}
-CURRENT AVG SCORE: {avg_score}
+HEARTBEAT_PATH = Path("agents/optimization/heartbeat.json")
+BEST_WEIGHTS_PATH = Path("agents/optimization/best_weights.txt")
 
-SYNC STATUS: Connected
-MANAGER INSTRUCTION: {get_manager_instruction()}
-"""
-    with open(STATUS_FILE, "w") as f:
-        f.write(status_content)
-    logging.info(f"Heartbeat logged: Fitness {fitness}")
+def update_heartbeat(status, fitness=0, avg_score=0):
+    heartbeat = {
+        "timestamp": datetime.now().isoformat(),
+        "status": status,
+        "current_fitness": fitness,
+        "current_avg_score": avg_score,
+        "mode": "autonomous_scaling"
+    }
+    with open(HEARTBEAT_PATH, "w") as f:
+        json.dump(heartbeat, f, indent=2)
 
-def get_manager_instruction():
-    try:
-        if os.path.exists(SYNC_FILE):
-            with open(SYNC_FILE, "r") as f:
-                data = json.load(f)
-                return data.get("manager_instruction", "No instruction found")
-    except Exception as e:
-        return f"Error reading sync: {e}"
-    return "Ready"
-
-def run_sweep():
-    logging.info("Starting new 10k cycle...")
+def run_optimization_cycle(iterations=5000, modern_only=True):
+    cmd = ["python3", "scripts/optimize_weights.py", "--iterations", str(iterations)]
+    if modern_only:
+        cmd.append("--modern_only")
     
-    # Check for shifted parameters in indicators
-    # For now, we just pass the default iterations
-    cmd = ["python", OPTIMIZE_SCRIPT, "--iterations", "10000"]
+    logging.info(f"Starting optimization cycle: {' '.join(cmd)}")
+    update_heartbeat("RUNNING_OPTIMIZATION")
     
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        universal_newlines=True,
-        cwd=BASE_DIR
-    )
-
-    last_heartbeat = time.time()
-    current_best_fitness = "N/A"
-    current_avg_score = "N/A"
-    iteration_count = 0
-
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    
+    last_fitness = 0
+    last_avg = 0
+    
     for line in process.stdout:
-        print(line, end="") # Echo to log
-        
-        # Parse output for progress
-        # Example: [105] New Global Best! Fitness: 187.96 | Avg: 229.88 | Temp: 895
+        print(line, end="")
         if "New Global Best!" in line:
+            # Example: [260] New Global Best! Fitness: 170.31 | Avg: 208.92
             try:
                 parts = line.split("|")
-                fitness_part = parts[0].split("Fitness:")[1].strip()
-                avg_part = parts[1].split("Avg:")[1].strip()
-                current_best_fitness = fitness_part
-                current_avg_score = avg_part
+                fitness = float(parts[0].split("Fitness:")[1].strip())
+                avg = float(parts[1].split("Avg:")[1].split("|")[0].strip())
+                last_fitness = fitness
+                last_avg = avg
+                update_heartbeat("IMPROVING", fitness=fitness, avg_score=avg)
+                logging.info(f"New Best: Fitness {fitness} | Avg {avg}")
             except:
                 pass
-        
-        if "Iter" in line:
-            try:
-                iteration_count = line.split("/")[0].split("Iter")[1].strip()
-            except:
-                pass
-
-        # Update heartbeat every 5 minutes
-        if time.time() - last_heartbeat > 300:
-            log_heartbeat(iteration_count, current_best_fitness, current_avg_score)
-            last_heartbeat = time.time()
-
+                
     process.wait()
-    logging.info("Cycle completed.")
+    return last_fitness, last_avg
 
-def main_loop():
-    logging.info("Autonomous Optimization Agent Online.")
+def main():
+    os.makedirs("agents/optimization", exist_ok=True)
+    logging.info("Autonomous Orchestrator Started")
+    
+    cycle_count = 1
     while True:
-        try:
-            # Sync
-            instruction = get_manager_instruction()
-            logging.info(f"Sync complete. Instruction: {instruction}")
-            
-            # Execute
-            run_sweep()
-            
-            # Self-Direct: Check indicators before next run
-            if os.path.exists(INDICATORS_FILE):
-                logging.info("Re-reading v2025_indicators.json for next cycle shift...")
-            
-            logging.info("Waiting 10 seconds before next infinite loop restart...")
-            time.sleep(10)
-            
-        except Exception as e:
-            logging.error(f"Error in main loop: {e}")
-            time.sleep(60)
+        logging.info(f"--- Starting Cycle {cycle_count} ---")
+        
+        # Alternate between Modern and Deep (All Years) modes
+        modern_mode = (cycle_count % 2 != 0)
+        fitness, avg = run_optimization_cycle(iterations=5000, modern_only=modern_mode)
+        
+        logging.info(f"Cycle {cycle_count} Finished. Peak Fitness: {fitness}")
+        update_heartbeat("IDLE_BETWEEN_CYCLES", fitness=fitness, avg_score=avg)
+        
+        # Small rest to allow FS sync
+        time.sleep(10)
+        cycle_count += 1
 
 if __name__ == "__main__":
-    main_loop()
+    main()

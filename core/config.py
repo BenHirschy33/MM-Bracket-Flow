@@ -53,6 +53,10 @@ class SimulationWeights:
     coach_tournament_weight: float = 0.0  # Rewards coaches with deep tournament experience
     tempo_upset_weight: float = 0.0       # Slow-tempo underdogs reduce the talent gap
 
+    # Phase 5: Fatigue & Orchestration
+    fatigue_sensitivity: float = 0.0      # Penalty for short rest (R32, E8, Champ)
+    bench_rest_bonus: float = 0.0         # Rewards deep teams on short rest
+
     # Intuition weight: Disabled
     intuition_weight: float = 0.0
 

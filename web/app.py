@@ -19,6 +19,24 @@ CORS(app)
 def index():
     return render_template('index.html')
 
+def extract_weights(data):
+    """Refined helper to extract ALL weights from request data with defaults."""
+    return SimulationWeights(
+        efficiency_weight=float(data.get('efficiency') or data.get('eff') or DEFAULT_WEIGHTS.efficiency_weight),
+        sos_weight=float(data.get('sos') or DEFAULT_WEIGHTS.sos_weight),
+        trb_weight=float(data.get('trb') or DEFAULT_WEIGHTS.trb_weight),
+        to_weight=float(data.get('to') or DEFAULT_WEIGHTS.to_weight),
+        momentum_weight=float(data.get('momentum') or DEFAULT_WEIGHTS.momentum_weight),
+        ft_weight=float(data.get('ft') or DEFAULT_WEIGHTS.ft_weight),
+        defense_premium=float(data.get('def_premium', DEFAULT_WEIGHTS.defense_premium)),
+        orb_density_weight=float(data.get('orb_density', DEFAULT_WEIGHTS.orb_density_weight)),
+        luck_regression_weight=float(data.get('luck_regression', DEFAULT_WEIGHTS.luck_regression_weight)),
+        coach_tournament_weight=float(data.get('coach_moxie', DEFAULT_WEIGHTS.coach_tournament_weight)),
+        tempo_upset_weight=float(data.get('tempo_upset', DEFAULT_WEIGHTS.tempo_upset_weight)),
+        fatigue_sensitivity=float(data.get('fatigue', DEFAULT_WEIGHTS.fatigue_sensitivity)),
+        bench_rest_bonus=float(data.get('bench', DEFAULT_WEIGHTS.bench_rest_bonus))
+    )
+
 @app.route('/api/teams/<int:year>')
 def get_teams(year):
     try:
@@ -38,6 +56,7 @@ def get_teams(year):
                 "trb_pct": t.trb_pct,
                 "off_ft_pct": getattr(t, 'off_ft_pct', 0),
                 "def_ft_pct": getattr(t, 'def_ft_pct', 0),
+                "archetype": t.archetype,
                 "intuition_score": t.intuition_score
             })
         return jsonify(teams_list)
@@ -52,7 +71,14 @@ def get_optimal_weights():
         "sos": DEFAULT_WEIGHTS.sos_weight,
         "momentum": DEFAULT_WEIGHTS.momentum_weight,
         "efficiency": DEFAULT_WEIGHTS.efficiency_weight,
-        "ft": DEFAULT_WEIGHTS.ft_weight
+        "ft": DEFAULT_WEIGHTS.ft_weight,
+        "def_premium": DEFAULT_WEIGHTS.defense_premium,
+        "orb_density": DEFAULT_WEIGHTS.orb_density_weight,
+        "luck_regression": DEFAULT_WEIGHTS.luck_regression_weight,
+        "coach_moxie": DEFAULT_WEIGHTS.coach_tournament_weight,
+        "tempo_upset": DEFAULT_WEIGHTS.tempo_upset_weight,
+        "fatigue": DEFAULT_WEIGHTS.fatigue_sensitivity,
+        "bench": DEFAULT_WEIGHTS.bench_rest_bonus
     })
 
 @app.route('/api/bracket/<int:year>', methods=['GET'])
@@ -95,15 +121,7 @@ def simulate_matchup():
         if not team_a or not team_b:
             return jsonify({"error": "Team not found"}), 404
             
-        custom_weights = SimulationWeights(
-            trb_weight=float(weights_data.get('trb', 4.895)),
-            to_weight=float(weights_data.get('to', 2.846)),
-            sos_weight=float(weights_data.get('sos', 7.635)),
-            momentum_weight=float(weights_data.get('momentum', 0.073)),
-            efficiency_weight=float(weights_data.get('efficiency', 0.022)),
-            ft_weight=float(weights_data.get('ft', 0.881)),
-            defense_premium=float(weights_data.get('def_premium', 6.479))
-        )
+        custom_weights = extract_weights(weights_data)
         engine = SimulatorEngine(teams=teams, weights=custom_weights)
         prob_a = engine.calculate_win_probability(team_a, team_b)
         winner = team_a if prob_a >= 0.5 else team_b
@@ -150,15 +168,7 @@ def get_matchup_detail():
         if not t_a or not t_b:
             return jsonify({"error": "Team not found"}), 404
             
-        custom_weights = SimulationWeights(
-            trb_weight=float(weights_data.get('trb') or 4.895),
-            to_weight=float(weights_data.get('to') or 2.846),
-            sos_weight=float(weights_data.get('sos') or 7.635),
-            momentum_weight=float(weights_data.get('momentum') or 0.073),
-            efficiency_weight=float(weights_data.get('eff') or 0.022),
-            ft_weight=float(weights_data.get('ft') or 0.881),
-            defense_premium=float(weights_data.get('def_premium') or 6.479)
-        )
+        custom_weights = extract_weights(weights_data)
         engine = SimulatorEngine(teams=teams, weights=custom_weights)
         prob_a = engine.calculate_win_probability(t_a, t_b)
         # Generate dynamic "Why" analysis
@@ -242,13 +252,15 @@ def get_matchup_detail():
                 "name": t_a.name, "seed": t_a.seed,
                 "off_eff": t_a.off_efficiency, "def_eff": t_a.def_efficiency,
                 "sos": t_a.sos, "trb": t_a.trb_pct, "mom": t_a.momentum, "ft": t_a.off_ft_pct,
-                "luck": luck_a, "star_reliance": star_a, "orb_pct": orb_a, "ft_rate": ftr_a
+                "luck": luck_a, "star_reliance": star_a, "orb_pct": orb_a, "ft_rate": ftr_a,
+                "archetype": t_a.archetype
             },
             "team_b": {
                 "name": t_b.name, "seed": t_b.seed,
                 "off_eff": t_b.off_efficiency, "def_eff": t_b.def_efficiency,
                 "sos": t_b.sos, "trb": t_b.trb_pct, "mom": t_b.momentum, "ft": t_b.off_ft_pct,
-                "luck": luck_b, "star_reliance": star_b, "orb_pct": orb_b, "ft_rate": ftr_b
+                "luck": luck_b, "star_reliance": star_b, "orb_pct": orb_b, "ft_rate": ftr_b,
+                "archetype": t_b.archetype
             },
             "probability": prob_a,
             "analysis": analysis
@@ -265,29 +277,14 @@ def run_full_sim():
         weights_data = data.get('weights', {})
         locks = data.get('locks', {})
         
-        custom_weights = SimulationWeights(
-            trb_weight=float(weights_data.get('trb', 4.895)),
-            to_weight=float(weights_data.get('to', 2.846)),
-            sos_weight=float(weights_data.get('sos', 7.635)),
-            momentum_weight=float(weights_data.get('momentum', 0.073)),
-            efficiency_weight=float(weights_data.get('efficiency', 0.022)),
-            ft_weight=float(weights_data.get('ft', 0.881))
-        )
+        custom_weights = extract_weights(weights_data)
     else:
         year = request.args.get('year', default=2026, type=int)
         mode = request.args.get('mode', default='deterministic')
         locks = {}
         
         # Parse weights from query params (e.g., ?sos=7.5&trb=4.2)
-        custom_weights = SimulationWeights(
-            trb_weight=request.args.get('trb', default=DEFAULT_WEIGHTS.trb_weight, type=float),
-            to_weight=request.args.get('to', default=DEFAULT_WEIGHTS.to_weight, type=float),
-            sos_weight=request.args.get('sos', default=DEFAULT_WEIGHTS.sos_weight, type=float),
-            momentum_weight=request.args.get('momentum', default=DEFAULT_WEIGHTS.momentum_weight, type=float),
-            efficiency_weight=request.args.get('efficiency', default=DEFAULT_WEIGHTS.efficiency_weight, type=float),
-            ft_weight=request.args.get('ft', default=DEFAULT_WEIGHTS.ft_weight, type=float),
-            defense_premium=request.args.get('def_premium', default=DEFAULT_WEIGHTS.defense_premium, type=float)
-        )
+        custom_weights = extract_weights(request.args)
     
     SEED_MATCHUPS = [(1, 16), (8, 9), (5, 12), (4, 13), (6, 11), (3, 14), (7, 10), (2, 15)]
     

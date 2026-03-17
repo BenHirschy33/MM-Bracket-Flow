@@ -98,6 +98,21 @@ class SimulatorEngine:
             discipline_delta = team_b.def_ft_rate - team_a.def_ft_rate
             final_probability += discipline_delta * self.weights.def_ft_rate_weight
 
+        # Phase 5: Fatigue & Short Rest (R32, E8, F4, Champ)
+        # These rounds happen on ~48 hours rest.
+        if round_num in [2, 4, 6] and self.weights.fatigue_sensitivity > 0:
+            # Fatigue is higher for teams that play fast (high pace)
+            # and offset by depth (bench_rest_bonus)
+            fatigue_a = (team_a.pace or 70.0) * 0.01 * self.weights.fatigue_sensitivity
+            fatigue_b = (team_b.pace or 70.0) * 0.01 * self.weights.fatigue_sensitivity
+            
+            # Apply bench bonus (rewards deep rotations)
+            depth_a = (team_a.bench_minutes_pct or 25.0) * 0.01 * self.weights.bench_rest_bonus
+            depth_b = (team_b.bench_minutes_pct or 25.0) * 0.01 * self.weights.bench_rest_bonus
+            
+            net_fatigue = (fatigue_a - depth_a) - (fatigue_b - depth_b)
+            final_probability -= net_fatigue # higher net fatigue reduces win prob
+
         # 5. Luck Metric (Phase 4)
         # Luck = Win% - (SRS/40) - higher luck means a team might be over-seeded/over-valued
         if hasattr(team_a, 'sos') and hasattr(team_b, 'sos'): # Use SOS as SRS proxy if needed
@@ -198,8 +213,8 @@ class SimulatorEngine:
         # Coaches with deep tournament experience (Elite Eight+) give their
         # teams a measurable edge. Research showed this is the strongest
         # single predictor for Final Four appearances.
-        coach_wins_a = getattr(team_a, 'coach_tourney_wins', 0) or 0
-        coach_wins_b = getattr(team_b, 'coach_tourney_wins', 0) or 0
+        coach_wins_a = getattr(team_a, 'coach_tournament_wins', 0) or 0
+        coach_wins_b = getattr(team_b, 'coach_tournament_wins', 0) or 0
         if coach_wins_a > 0 or coach_wins_b > 0:
             # Normalize: a coach with 20+ tourney wins is elite
             moxie_a = min(1.0, coach_wins_a / 20.0)

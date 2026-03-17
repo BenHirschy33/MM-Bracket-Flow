@@ -37,6 +37,8 @@ class Team:
     off_ts_pct: Optional[float] = None    # True Shooting Percentage (Phase 4)
     def_ft_rate: Optional[float] = None    # FTr Allowed (Phase 5+)
     total_games: Optional[int] = None      # Experience proxy (Phase 4)
+    bench_minutes_pct: Optional[float] = None # Bench usage % (Phase 5 fatigue logic)
+    coach_tournament_wins: Optional[int] = None # Coach Moxie metric (Research Loop 1)
     star_reliance: Optional[float] = None # Pricing index for usage concentration (Phase 9)
     total_win_pct: Optional[float] = None # Cumulative Win % (Phase 2 refined SOS)
     
@@ -92,6 +94,21 @@ class Team:
             return 0.5
         return non_conf_w / total
 # Actually I'll use the record logic.
+
+    @property
+    def archetype(self) -> str:
+        """Returns a string label representing the team's playing style."""
+        if (self.off_efficiency or 100) > 118 and (self.def_efficiency or 100) < 94:
+            return "Juggernaut"
+        if (self.pace or 70) < 66 and (self.def_efficiency or 100) < 96:
+            return "Pace Killer"
+        if (self.off_orb_pct or 0) > 34.0:
+            return "Glass Crasher"
+        if (self.three_par or 0) > 0.45 and (self.def_to_pct or 0) > 21.0:
+            return "Chaos Engine"
+        if (self.seed or 1) >= 11 and (self.pace or 70) < 67:
+            return "Cinderella Thread"
+        return "Standard"
 
     @property
     def pythagorean_expectation(self) -> float:

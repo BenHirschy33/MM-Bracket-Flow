@@ -117,7 +117,10 @@ async function fetchTeams(year) {
                 <div class="team-info">
                     <span class="seed-num">${team.seed || '?'}</span>
                     <div>
-                        <div style="font-weight: 600; font-size: 0.9rem;">${team.name}</div>
+                        <div style="font-weight: 600; font-size: 0.9rem; display: flex; align-items: center;">
+                            ${team.name}
+                            ${team.archetype !== 'Standard' ? `<span class="archetype-tag ${team.archetype.toLowerCase().replace(' ', '-')}">${team.archetype}</span>` : ''}
+                        </div>
                         <div class="stat-tag">Eff: ${team.off_efficiency} | Mom: ${team.momentum.toFixed(2)}</div>
                     </div>
                 </div>
@@ -139,7 +142,13 @@ async function runSimulation() {
         efficiency: parseFloat(document.getElementById('weight-eff').value),
         momentum: parseFloat(document.getElementById('weight-momentum').value),
         ft: parseFloat(document.getElementById('weight-ft').value),
-        def_premium: parseFloat(document.getElementById('weight-def-premium').value)
+        def_premium: parseFloat(document.getElementById('weight-def-premium').value),
+        orb_density: parseFloat(document.getElementById('weight-orb-density').value),
+        luck_regression: parseFloat(document.getElementById('weight-luck-regression').value),
+        coach_moxie: parseFloat(document.getElementById('weight-coach-moxie').value),
+        tempo_upset: parseFloat(document.getElementById('weight-tempo-upset').value),
+        fatigue: parseFloat(document.getElementById('weight-fatigue').value),
+        bench: parseFloat(document.getElementById('weight-bench').value)
     };
     
     try {
@@ -476,7 +485,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Real-time Slider & Number updates (bidirectional sync)
-    const factorIds = ['sos', 'trb', 'to', 'eff', 'momentum', 'ft', 'def-premium', 'orb-density', 'luck-regression', 'coach-moxie', 'tempo-upset'];
+    const factorIds = [
+        'sos', 'trb', 'to', 'eff', 'momentum', 'ft', 'def-premium', 
+        'orb-density', 'luck-regression', 'coach-moxie', 'tempo-upset',
+        'fatigue', 'bench'
+    ];
     factorIds.forEach(id => {
         const slider = document.getElementById(`weight-${id}`);
         const numInput = document.getElementById(`num-${id}`);
