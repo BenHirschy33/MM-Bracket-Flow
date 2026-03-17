@@ -20,22 +20,44 @@ def index():
     return render_template('index.html')
 
 def extract_weights(data):
-    """Refined helper to extract ALL weights from request data with defaults."""
-    return SimulationWeights(
-        efficiency_weight=float(data.get('efficiency') or data.get('eff') or DEFAULT_WEIGHTS.efficiency_weight),
-        sos_weight=float(data.get('sos') or DEFAULT_WEIGHTS.sos_weight),
-        trb_weight=float(data.get('trb') or DEFAULT_WEIGHTS.trb_weight),
-        to_weight=float(data.get('to') or DEFAULT_WEIGHTS.to_weight),
-        momentum_weight=float(data.get('momentum') or DEFAULT_WEIGHTS.momentum_weight),
-        ft_weight=float(data.get('ft') or DEFAULT_WEIGHTS.ft_weight),
-        defense_premium=float(data.get('def_premium', DEFAULT_WEIGHTS.defense_premium)),
-        orb_density_weight=float(data.get('orb_density', DEFAULT_WEIGHTS.orb_density_weight)),
-        luck_regression_weight=float(data.get('luck_regression', DEFAULT_WEIGHTS.luck_regression_weight)),
-        coach_tournament_weight=float(data.get('coach_moxie', DEFAULT_WEIGHTS.coach_tournament_weight)),
-        tempo_upset_weight=float(data.get('tempo_upset', DEFAULT_WEIGHTS.tempo_upset_weight)),
-        fatigue_sensitivity=float(data.get('fatigue', DEFAULT_WEIGHTS.fatigue_sensitivity)),
-        bench_rest_bonus=float(data.get('bench', DEFAULT_WEIGHTS.bench_rest_bonus))
-    )
+    """Robustly extracts weights from request data, handling hyphens and underscores."""
+    from core.config import SimulationWeights
+    weights_dict = {}
+    
+    # Get all field names from SimulationWeights
+    import dataclasses
+    fields = [f.name for f in dataclasses.fields(SimulationWeights)]
+    
+    for field in fields:
+        # Try underscore, then hyphen
+        val = data.get(field)
+        if val is None:
+            hyphen_key = field.replace('_', '-')
+            val = data.get(hyphen_key)
+        
+        # Specific short-codes used by the frontend
+        if field == 'efficiency_weight' and val is None:
+            val = data.get('eff')
+        if field == 'sos_weight' and val is None:
+            val = data.get('sos')
+        if field == 'trb_weight' and val is None:
+            val = data.get('trb')
+        if field == 'to_weight' and val is None:
+            val = data.get('to')
+        if field == 'momentum_weight' and val is None:
+            val = data.get('momentum')
+        if field == 'ft_weight' and val is None:
+            val = data.get('ft')
+        
+        if val is not None:
+            try:
+                weights_dict[field] = float(val)
+            except (ValueError, TypeError):
+                weights_dict[field] = getattr(DEFAULT_WEIGHTS, field)
+        else:
+            weights_dict[field] = getattr(DEFAULT_WEIGHTS, field)
+            
+    return SimulationWeights(**weights_dict)
 
 @app.route('/api/teams/<int:year>')
 def get_teams(year):
@@ -57,7 +79,7 @@ def get_teams(year):
                 "off_ft_pct": getattr(t, 'off_ft_pct', 0),
                 "def_ft_pct": getattr(t, 'def_ft_pct', 0),
                 "archetype": t.archetype,
-                "intuition_score": t.intuition_score
+                "intuition_score": t.intuition_factor
             })
         return jsonify(teams_list)
     except Exception as e:
@@ -140,24 +162,14 @@ def get_matchup_detail():
     if request.method == 'POST':
         data = request.json or {}
     else:
-        # Handle GET params
-        data = {
-            'year': request.args.get('year', default=2026, type=int),
-            'team_a': request.args.get('team_a'),
-            'team_b': request.args.get('team_b'),
-            'sos': request.args.get('sos', type=float),
-            'trb': request.args.get('trb', type=float),
-            'to': request.args.get('to', type=float),
-            'eff': request.args.get('eff', type=float),
-            'momentum': request.args.get('momentum', type=float),
-            'ft': request.args.get('ft', type=float),
-            'def_premium': request.args.get('def_premium', type=float)
-        }
+        # Robustly collect all GET params
+        data = request.args.to_dict()
+        if 'year' in data: data['year'] = int(data['year'])
         
     year = data.get('year', 2026)
     team_a_name = data.get('team_a')
     team_b_name = data.get('team_b')
-    weights_data = data.get('weights', data) # if POST uses 'weights', else flat
+    weights_data = data.get('weights', data)
 
     try:
         base_dir = Path(f"years/{year}/data")

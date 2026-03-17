@@ -13,6 +13,7 @@ class Team:
     def_efficiency: float  # e.g., KenPom Adjusted Defensive Efficiency (AdjD)
     off_ppg: float         # Raw Offensive Points Per Game
     def_ppg: float         # Raw Defensive Points Per Game Allowed
+    year: Optional[int] = None # The tournament year for era-aware simulation
     
     # Advanced Metrics (with defaults so instantiation without them doesn't fail)
     pace: Optional[float] = None           # Adjusted Tempo (Possessions per 40 min)
@@ -134,7 +135,13 @@ class Team:
         return adj_o_exp / (adj_o_exp + adj_d_exp)
 
     @property
-    def hirschy_factor(self) -> float:
+    def experience(self) -> float:
+        """Normalized experience proxy (0.0 to 4.0)."""
+        # Average games in a 4-year career is ~120. Scale total_games to 0-4.
+        return min(4.0, (self.total_games or 30) / 30.0)
+
+    @property
+    def intuition_factor(self) -> float:
         """
         The Definitive Composite Metric.
         Weights: Efficiency (40%), SOS (30%), Experience (15%), Momentum (15%).

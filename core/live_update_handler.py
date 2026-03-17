@@ -32,7 +32,7 @@ class LiveUpdateHandler:
     def _resimulate_bracket(self):
         """
         Re-simulate 'Second Chance' brackets based on updated actuals,
-        KenPom rankings, NET stats, and the Hirschy Factor.
+        KenPom rankings, NET stats, and the Intuition Factor.
         """
         logging.info("Re-simulating remaining bracket predictions with updated state...")
 

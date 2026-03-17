@@ -3,11 +3,11 @@
 A perpetual March Madness prediction engine, designed to augment statistical analysis with human intuition. Built with a modular architecture to support multi-year bracket simulations, starting with the 2026 campaign.
 
 ## Philosophy
-**MM-Bracket-Flow** is built on the premise that raw statistical models (like KenPom and NET) are powerful algorithms, but they lack the nuanced "gut feeling" of seasoned college basketball analysts. This repository combining objective data with subjective intuition—the **Hirschy Factor**.
+**MM-Bracket-Flow** is built on the premise that raw statistical models (like KenPom and NET) are powerful algorithms, but they lack the nuanced "gut feeling" of seasoned college basketball analysts. This repository combining objective data with subjective intuition—the **Intuition Factor**.
 
 Our architecture is expressly designed for longevity. The `/core` directory houses year-agnostic simulation logic, while season-specific data—starting with 2026—is siloed elegantly in `/years/YYYY/`.
 
-## The Intuition Engine (The "Hirschy Factor")
+## The Intuition Engine (The "Intuition Factor")
 The core driver of subjective adjustments is `core/intuition_config.yaml`. 
 You can input a **Human Intuition Score** ranging from `-10` to `+10` for any team.
 
@@ -23,7 +23,7 @@ This year's initial projections draw from:
 *   **KenPom Rankings:** Duke, Michigan, Arizona, and Florida feature prominently as balanced efficiency juggernauts (Top 25 Offense/Defense rule) and project as No. 1 seeds.
 
 **Baseline Assumption Confidence Score: 85.5%**
-The current 'Chalk' bracket structure (`/years/2026/data/chalk_bracket.json`) reflects a high degree of confidence in the top tier statistically, but anticipates adjustments as the Hirschy Factor is mapped in.
+The current 'Chalk' bracket structure (`/years/2026/data/chalk_bracket.json`) reflects a high degree of confidence in the top tier statistically, but anticipates adjustments as the Intuition Factor is mapped in.
 
 ## Dynamic Updating (Second Chance Brackets)
 The tournament is fluid, and brackets bust. Use `core/live_update_handler.py` to input actual game winners as they happen in real-time. The framework instantly consumes these results to re-simulate "Second Chance" brackets for the remaining rounds based on actual survivors.

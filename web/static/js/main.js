@@ -1,22 +1,16 @@
 const appState = {
     mode: 'deterministic',
     year: '2026',
+    filter: {
+        region: 'all',
+        round: 'all'
+    },
     locks: {
         regions: {},
         final_four: {},
         championship: {}
     },
-    optimalWeights: {
-        trb: 1.763,
-        to: 0.639,
-        sos: 7.365,
-        momentum: 0.021,
-        efficiency: 0.039,
-        ft: 0.881,
-        def_premium: 6.479,
-        orb_density: 1.42,
-        luck_regression: 0.125
-    },
+    optimalWeights: {},
     teams: {},
     currentData: null,
     simTimer: null
@@ -31,6 +25,7 @@ function debounceSim() {
 
 function resetToOptimal() {
     const weights = appState.optimalWeights;
+    // Map API weight names to UI input IDs
     const mapping = {
         'weight-sos': weights.sos,
         'weight-trb': weights.trb,
@@ -38,19 +33,22 @@ function resetToOptimal() {
         'weight-eff': weights.efficiency,
         'weight-momentum': weights.momentum,
         'weight-ft': weights.ft,
-        'weight-def-premium': weights.def_premium
+        'weight-def-premium': weights.def_premium,
+        'weight-intuition-factor': weights.intuition_factor_weight,
+        'weight-composure-index-weight': weights.composure_index_weight,
+        'weight-upset-delta-weight': weights.upset_delta_weight
     };
 
     for (const [id, val] of Object.entries(mapping)) {
+        if (val === undefined) continue;
         const slider = document.getElementById(id);
-        // Extract the stat name (e.g., 'sos' from 'weight-sos')
-        const statName = id.split('-')[1];
+        const statName = id.replace('weight-', '');
         const numInput = document.getElementById('num-' + statName);
         const valLabel = document.getElementById('val-' + statName);
 
         if (slider) slider.value = val;
         if (numInput) numInput.value = val;
-        if (valLabel) valLabel.textContent = val; // Update the display label
+        if (valLabel) valLabel.textContent = val;
     }
     runSimulation();
 }
@@ -60,7 +58,6 @@ function toggleLock(region, round, teamName) {
         if (appState.locks[region][teamName]) {
             delete appState.locks[region][teamName];
         } else {
-            // Lock only one per region round in FF/Champ for simplicity
             appState.locks[region] = { [teamName]: true };
         }
     } else {
@@ -73,7 +70,7 @@ function toggleLock(region, round, teamName) {
             appState.locks.regions[region][round][teamName] = true;
         }
     }
-    runSimulation(); // Immediate re-sim on lock
+    runSimulation();
 }
 
 function isLocked(region, round, teamName) {
@@ -92,7 +89,7 @@ async function initWeights() {
         const response = await fetch('/api/weights/optimal');
         const weights = await response.json();
         appState.optimalWeights = weights;
-        resetToOptimal(); // Apply fetched weights immediately
+        resetToOptimal();
     } catch (err) {
         console.error("Failed to fetch optimal weights", err);
     }
@@ -124,7 +121,7 @@ async function fetchTeams(year) {
                         <div class="stat-tag">Eff: ${team.off_efficiency} | Mom: ${team.momentum.toFixed(2)}</div>
                     </div>
                 </div>
-                ${team.intuition_score !== 0 ? `<div class="intuition-bubble">H: +${team.intuition_score}</div>` : ''}
+                ${team.intuition_score !== 0 ? `<div class="intuition-bubble">I: +${team.intuition_score.toFixed(1)}</div>` : ''}
             `;
             teamList.appendChild(item);
         });
@@ -135,21 +132,17 @@ async function fetchTeams(year) {
 
 async function runSimulation() {
     const bracketContainer = document.getElementById('bracket-container');
-    const weights = {
-        sos: parseFloat(document.getElementById('weight-sos').value),
-        trb: parseFloat(document.getElementById('weight-trb').value),
-        to: parseFloat(document.getElementById('weight-to').value),
-        efficiency: parseFloat(document.getElementById('weight-eff').value),
-        momentum: parseFloat(document.getElementById('weight-momentum').value),
-        ft: parseFloat(document.getElementById('weight-ft').value),
-        def_premium: parseFloat(document.getElementById('weight-def-premium').value),
-        orb_density: parseFloat(document.getElementById('weight-orb-density').value),
-        luck_regression: parseFloat(document.getElementById('weight-luck-regression').value),
-        coach_moxie: parseFloat(document.getElementById('weight-coach-moxie').value),
-        tempo_upset: parseFloat(document.getElementById('weight-tempo-upset').value),
-        fatigue: parseFloat(document.getElementById('weight-fatigue').value),
-        bench: parseFloat(document.getElementById('weight-bench').value)
-    };
+    
+    const weights = {};
+    const weightInputs = document.querySelectorAll('input[id^="weight-"]');
+    weightInputs.forEach(input => {
+        const id = input.id.replace('weight-', '').replace(/-/g, '_');
+        let key = id;
+        if (key === 'eff') key = 'efficiency';
+        if (key === 'rust_rhythm') key = 'rust';
+        
+        weights[key] = parseFloat(input.value);
+    });
     
     try {
         const response = await fetch(`/api/simulation/full`, {
@@ -170,8 +163,6 @@ async function runSimulation() {
         }
         
         appState.currentData = data;
-        
-        // Waterfall Rendering: Reveal rounds with a slight delay for "Discovery" feel
         renderBracketWaterfall(data);
     } catch (err) {
         console.error("Simulation failed", err);
@@ -180,100 +171,69 @@ async function runSimulation() {
 
 // --- Rendering ---
 
-async function renderBracketWaterfall(data) {
+function renderBracketWaterfall(data) {
     const container = document.getElementById('bracket-container');
     container.innerHTML = '';
-    container.className = 'bracket-view';
-
-    // Header for Global View
-    const header = document.createElement('div');
-    header.className = 'view-header';
-    header.style.opacity = '0';
-    header.style.transition = 'opacity 0.8s ease';
-    header.innerHTML = `<h3 class="glow-text">Tournament Intelligence Matrix</h3>`;
-    container.appendChild(header);
-    setTimeout(() => header.style.opacity = '1', 50);
-
-    const regions = Object.keys(data.regions);
     
-    for (const regionName of regions) {
+    const regionsOrder = ['East', 'West', 'South', 'Midwest'];
+    
+    regionsOrder.forEach(regionName => {
+        const rounds = data.regions[regionName];
+        if (!rounds) return;
+
         const regionBlock = document.createElement('div');
         regionBlock.className = 'region-block';
-        regionBlock.style.opacity = '0';
-        regionBlock.style.transform = 'translateY(20px)';
-        regionBlock.style.transition = 'all 0.6s cubic-bezier(0.19, 1, 0.22, 1)';
-        regionBlock.innerHTML = `<h3>${regionName} Region</h3>`;
+        regionBlock.setAttribute('data-region', regionName);
+        regionBlock.style.gridArea = regionName.toLowerCase();
+        
+        // Handle Filtering
+        if (appState.filter.region !== 'all' && appState.filter.region !== regionName) {
+            regionBlock.classList.add('hidden');
+        }
+
+        regionBlock.innerHTML = `<h3>${regionName}</h3>`;
         
         const displayArea = document.createElement('div');
         displayArea.className = 'region-display';
         
-        const rounds = data.regions[regionName];
         const roundsContainer = document.createElement('div');
         roundsContainer.className = 'rounds-flex';
         
-        for (const [roundIdx, r] of rounds.entries()) {
+        rounds.forEach((r, roundIdx) => {
             const roundDiv = document.createElement('div');
             roundDiv.className = `round-column round-${r.round}`;
-            roundDiv.style.opacity = '0';
-            roundDiv.style.transition = `opacity 0.5s ease ${roundIdx * 0.2}s`;
             
-            r.matchups.forEach((m, matchIdx) => {
-                const matchupWrapper = document.createElement('div');
-                matchupWrapper.className = 'matchup-wrapper';
-                
+            r.matchups.forEach((m) => {
                 const mCard = document.createElement('div');
-                const isUpper = matchIdx % 2 === 0;
-                const hasNext = roundIdx < rounds.length - 1;
-                mCard.className = `matchup-card ${isUpper ? 'upper' : 'lower'} ${hasNext ? 'has-next' : ''}`;
+                mCard.className = 'matchup-card';
                 
-                if (hasNext) {
-                    const spacing = calculateLineSpacing(r.round);
-                    mCard.style.setProperty('--spacing', `${spacing}px`);
-                }
-
-                const prob = (m.probability * 100).toFixed(0);
+                const prob = m.probability ? (m.probability * 100).toFixed(0) : null;
+                
                 mCard.appendChild(createTeamLine(regionName, r.round, m.team_a, m.seed_a, m.winner === m.team_a, prob));
-                mCard.appendChild(createTeamLine(regionName, r.round, m.team_b, m.seed_b, m.winner === m.team_b, 100 - prob));
+                mCard.appendChild(createTeamLine(regionName, r.round, m.team_b, m.seed_b, m.winner === m.team_b, prob ? 100 - prob : null));
                 
-                matchupWrapper.appendChild(mCard);
-                roundDiv.appendChild(matchupWrapper);
+                roundDiv.appendChild(mCard);
             });
             
             roundsContainer.appendChild(roundDiv);
-            setTimeout(() => roundDiv.style.opacity = '1', 100);
-        }
+        });
         
         displayArea.appendChild(roundsContainer);
         regionBlock.appendChild(displayArea);
         container.appendChild(regionBlock);
-        
-        setTimeout(() => {
-            regionBlock.style.opacity = '1';
-            regionBlock.style.transform = 'translateY(0)';
-        }, 300);
-    }
+    });
 
-    // Final Four Section
-    setTimeout(() => {
-        renderFinalFourBlock(data.final_four, data.championship, container);
-    }, 1200);
-}
-
-function renderBracket(data) {
-    // Basic fallback or initial render
-    renderBracketWaterfall(data);
-}
-
-function calculateLineSpacing(round) {
-    // Spacing increases exponentially with rounds to match progressive gap
-    const base = 20;
-    return Math.pow(2, round - 1) * base;
+    renderFinalFourBlock(data.final_four, data.championship, container);
 }
 
 function renderFinalFourBlock(ff, champ, container) {
     const ffBlock = document.createElement('div');
     ffBlock.className = 'region-block final-four-block';
-    ffBlock.innerHTML = `<h3>National Championship Flow</h3>`;
+    if (appState.filter.region !== 'all' && appState.filter.region !== 'final-four') {
+        ffBlock.classList.add('hidden');
+    }
+    
+    ffBlock.innerHTML = `<h3>Final Four</h3>`;
     
     const displayArea = document.createElement('div');
     displayArea.className = 'region-display';
@@ -281,7 +241,7 @@ function renderFinalFourBlock(ff, champ, container) {
     const roundsContainer = document.createElement('div');
     roundsContainer.className = 'rounds-flex';
     
-    // FF Round
+    // Semis
     const ffDiv = document.createElement('div');
     ffDiv.className = 'round-column round-5';
     ff.forEach(m => {
@@ -292,21 +252,23 @@ function renderFinalFourBlock(ff, champ, container) {
         ffDiv.appendChild(mDiv);
     });
     
-    // Champ Round
+    // Champ
     const champDiv = document.createElement('div');
     champDiv.className = 'round-column round-6';
-    const cDiv = document.createElement('div');
-    cDiv.className = 'matchup-card';
-    cDiv.appendChild(createTeamLine('championship', 1, champ.team_a, '', champ.winner === champ.team_a, ''));
-    cDiv.appendChild(createTeamLine('championship', 1, champ.team_b, '', champ.winner === champ.team_b, ''));
+    const cCard = document.createElement('div');
+    cCard.className = 'matchup-card';
+    cCard.appendChild(createTeamLine('championship', 1, champ.team_a, '', champ.winner === champ.team_a, ''));
+    cCard.appendChild(createTeamLine('championship', 1, champ.team_b, '', champ.winner === champ.team_b, ''));
     
-    const trophy = document.createElement('div');
-    trophy.className = 'champ-winner-glow';
-    trophy.style = "margin-top: 2rem; font-size: 1.5rem; font-weight: 800; color: var(--accent-gold); text-align: center; text-shadow: 0 0 20px var(--accent-gold-glow);";
-    trophy.innerHTML = `🏆 CHAMPS: ${champ.winner} 🏆`;
-    cDiv.appendChild(trophy);
+    if (champ.winner) {
+        const trophy = document.createElement('div');
+        trophy.className = 'champ-winner-glow';
+        trophy.style = "margin-top: 1.5rem; font-size: 1.2rem; font-weight: 800; color: var(--accent-gold); text-align: center;";
+        trophy.innerHTML = `🏆 ${champ.winner} 🏆`;
+        cCard.appendChild(trophy);
+    }
     
-    champDiv.appendChild(cDiv);
+    champDiv.appendChild(cCard);
     roundsContainer.appendChild(ffDiv);
     roundsContainer.appendChild(champDiv);
     displayArea.appendChild(roundsContainer);
@@ -316,141 +278,88 @@ function renderFinalFourBlock(ff, champ, container) {
 
 function createTeamLine(region, round, teamName, seed, isWinner, prob) {
     const line = document.createElement('div');
-    const locked = isLocked(region, round, teamName) ? 'locked' : '';
-    line.className = `team-line ${isWinner ? 'winner' : ''} ${locked}`;
+    const team = teamName || "TBD";
+    const locked = isLocked(region, round, team) ? 'locked' : '';
+    line.className = `team-line ${isWinner ? 'winner' : ''} ${locked} ${team === "TBD" ? 'tbd' : ''}`;
     
-    // Add tooltip info
-    const team = appState.teams[teamName];
-    let tooltip = '';
-    if (team) {
-        tooltip = `Eff: ${team.off_efficiency} | SOS: ${team.sos?.toFixed(1) || 'N/A'} | Mom: ${team.momentum?.toFixed(2)} | FT: ${team.off_ft_pct}%`;
+    // First Four Check (Seeding logic)
+    let firstFourTag = "";
+    if (seed === 11 || seed === 16) {
+        // Simple heuristic: if the year is 2026 and we are in R64, these might be play-ins
+        // In a real scenario, this would come from the API
+        // firstFourTag = `<span class="first-four-tag">FF</span>`;
     }
 
     line.innerHTML = `
-        <span>(${seed}) ${teamName} <span class="lock-icon" onclick="event.stopPropagation()">🔒</span></span>
-        ${isWinner && prob ? `<span class="prob-tag" title="${tooltip}">${prob}%</span>` : ''}
+        <span>(${seed || '?'}) ${team} ${firstFourTag} ${team !== "TBD" ? `<span class="lock-icon" onclick="event.stopPropagation()">🔒</span>` : ''}</span>
+        ${isWinner && prob ? `<span class="prob-tag">${prob}%</span>` : ''}
     `;
-    line.onclick = (e) => {
-        if (e.target.classList.contains('lock-icon')) {
-            toggleLock(region, round, teamName);
-        } else {
-            // Find the opponent
-            let opponent = "TBD";
-            const currentRound = appState.currentData?.regions[region]?.[round-1];
-            if (currentRound) {
-                const matchup = currentRound.matchups.find(m => m.team_a === teamName || m.team_b === teamName);
-                if (matchup) {
-                    opponent = matchup.team_a === teamName ? matchup.team_b : matchup.team_a;
+
+    if (team !== "TBD") {
+        line.onclick = (e) => {
+            if (e.target.classList.contains('lock-icon')) {
+                toggleLock(region, round, team);
+            } else {
+                let opponent = "TBD";
+                const currentRound = appState.currentData?.regions[region]?.[round-1];
+                if (currentRound) {
+                    const matchup = currentRound.matchups.find(m => m.team_a === team || m.team_b === team);
+                    if (matchup) {
+                        opponent = matchup.team_a === team ? matchup.team_b : matchup.team_a;
+                    }
                 }
+                openMatchupModal(team, opponent);
             }
-            openMatchupModal(teamName, opponent);
-        }
-    };
+        };
+    }
     return line;
 }
 
-// --- Modal Logic ---
+// --- Modals ---
 async function openMatchupModal(teamA, teamB) {
-    if (teamA === "TBD" || teamB === "TBD") return;
-    
+    if (!teamA || !teamB || teamA === "TBD" || teamB === "TBD") return;
     const modal = document.getElementById('matchup-modal');
     modal.classList.add('active');
-    
-    // Set loading state
     document.getElementById('why-list').innerHTML = '<div class="loading-spinner"></div>';
     
-    const weights = {
-        sos: parseFloat(document.getElementById('weight-sos').value),
-        trb: parseFloat(document.getElementById('weight-trb').value),
-        to: parseFloat(document.getElementById('weight-to').value),
-        eff: parseFloat(document.getElementById('weight-eff').value),
-        momentum: parseFloat(document.getElementById('weight-momentum').value),
-        ft: parseFloat(document.getElementById('weight-ft').value),
-        def_premium: parseFloat(document.getElementById('weight-def-premium').value)
-    };
+    const weights = {};
+    document.querySelectorAll('input[id^="weight-"]').forEach(i => {
+        weights[i.id.replace('weight-', '')] = i.value;
+    });
 
     try {
-        const response = await fetch(`/api/matchup/detail?team_a=${teamA}&team_b=${teamB}&year=${appState.year}&sos=${weights.sos}&trb=${weights.trb}&to=${weights.to}&eff=${weights.eff}&momentum=${weights.momentum}&ft=${weights.ft}&def_premium=${weights.def_premium}`);
+        const query = new URLSearchParams({ team_a: teamA, team_b: teamB, year: appState.year, ...weights });
+        const response = await fetch(`/api/matchup/detail?${query.toString()}`);
         const data = await response.json();
-        
         renderModalData(data);
     } catch (err) {
-        console.error("Matchup detail fetch failed", err);
+        console.error(err);
     }
 }
 
 function renderModalData(data) {
     document.getElementById('modal-prob').textContent = `${(data.probability * 100).toFixed(0)}% Win Prob`;
-    
     const renderTeam = (id, team) => {
         const div = document.getElementById(id);
-        div.className = 'team-card-modal';
         div.innerHTML = `
             <div class="name">(${team.seed}) ${team.name}</div>
             <div class="stat-bubbles">
                 <div class="stat-bubble">Off: ${team.off_eff.toFixed(1)}</div>
                 <div class="stat-bubble">Def: ${team.def_eff.toFixed(1)}</div>
                 <div class="stat-bubble">SOS: ${team.sos.toFixed(1)}</div>
-                <div class="stat-bubble" title="Luck Metric">L: ${(team.luck || 0).toFixed(2)}</div>
             </div>
         `;
     };
-    
     renderTeam('modal-team-a', data.team_a);
     renderTeam('modal-team-b', data.team_b);
     
-    // Render "The Why"
     const whyList = document.getElementById('why-list');
     whyList.innerHTML = data.analysis.map(item => `
         <div class="why-item">
-            <strong>${item.factor} (${item.importance})</strong>
+            <strong>${item.factor}</strong>
             <p>${item.description}</p>
         </div>
-    `).join('') || '<p>No significant analytical outliers found for this matchup.</p>';
-    
-    // Render Bars
-    const metrics = [
-        { label: 'Off. Efficiency', key: 'off_eff', max: 130 },
-        { label: 'Def. Efficiency', key: 'def_eff', max: 120, inverse: true },
-        { label: 'SOS Rating', key: 'sos', max: 15 },
-        { label: 'ORB Density', key: 'orb_pct', max: 45 },
-        { label: 'Star Reliance', key: 'star_reliance', max: 1.0 }
-    ];
-    
-    const barContainer = document.getElementById('comparison-bars');
-    barContainer.innerHTML = metrics.map(m => {
-        let valA = data.team_a[m.key] || 0;
-        let valB = data.team_b[m.key] || 0;
-        
-        return `
-            <div class="stat-bar-row">
-                <div class="stat-header">
-                    <span class="val-a">${valA.toFixed(m.key === 'star_reliance' ? 2 : 1)}</span>
-                    <span class="stat-label">${m.label}</span>
-                    <span class="val-b">${valB.toFixed(m.key === 'star_reliance' ? 2 : 1)}</span>
-                </div>
-                <div class="bar-wrapper">
-                    <div class="bar-fill team-a" style="width: 0%"></div>
-                    <div class="bar-fill team-b" style="width: 0%"></div>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    // Animate bars after render
-    setTimeout(() => {
-        const barsA = document.querySelectorAll('.bar-fill.team-a');
-        const barsB = document.querySelectorAll('.bar-fill.team-b');
-        metrics.forEach((m, i) => {
-            let valA = data.team_a[m.key] || 0;
-            let valB = data.team_b[m.key] || 0;
-            
-            const pctA = (valA / m.max) * 100;
-            const pctB = (valB / m.max) * 100;
-            barsA[i].style.width = `${pctA}%`;
-            barsB[i].style.width = `${pctB}%`;
-        });
-    }, 100);
+    `).join('') || '<p>Dead-locked statistical profile.</p>';
 }
 
 function closeMatchupModal() {
@@ -460,21 +369,17 @@ function closeMatchupModal() {
 // --- Initialization ---
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Basic event setup
+    // Year Selection
     const yearSelect = document.getElementById('year-select');
     appState.year = yearSelect.value;
     fetchTeams(appState.year);
-    
     yearSelect.addEventListener('change', (e) => {
         appState.year = e.target.value;
         fetchTeams(appState.year);
         runSimulation();
     });
-    
-    document.getElementById('run-sim-btn').addEventListener('click', runSimulation);
-    document.getElementById('reset-optimal').addEventListener('click', resetToOptimal);
-    
-    // Tab controls for mode
+
+    // Simulation Mode
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -484,49 +389,99 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Real-time Slider & Number updates (bidirectional sync)
-    const factorIds = [
-        'sos', 'trb', 'to', 'eff', 'momentum', 'ft', 'def-premium', 
-        'orb-density', 'luck-regression', 'coach-moxie', 'tempo-upset',
-        'fatigue', 'bench'
-    ];
-    factorIds.forEach(id => {
-        const slider = document.getElementById(`weight-${id}`);
+    // Region Filtering
+    document.querySelectorAll('.region-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            appState.filter.region = btn.getAttribute('data-region');
+            if (appState.currentData) renderBracketWaterfall(appState.currentData);
+        });
+    });
+
+    // Collapsibles
+    document.querySelectorAll('.group-header').forEach(header => {
+        header.addEventListener('click', () => {
+            header.parentElement.classList.toggle('expanded');
+        });
+    });
+
+    // Sync Sliders
+    document.querySelectorAll('input[type="range"][id^="weight-"]').forEach(slider => {
+        const id = slider.id.replace('weight-', '');
         const numInput = document.getElementById(`num-${id}`);
-        
-        // Sync Slider -> Number
         slider.addEventListener('input', (e) => {
-            numInput.value = e.target.value;
+            if (numInput) numInput.value = e.target.value;
+            const label = document.getElementById(`val-${id}`);
+            if (label) label.textContent = e.target.value;
             debounceSim();
         });
-        
-        // Sync Number -> Slider
-        numInput.addEventListener('input', (e) => {
-            slider.value = e.target.value;
-            debounceSim();
-        });
+        if (numInput) {
+            numInput.addEventListener('input', (e) => {
+                slider.value = e.target.value;
+                debounceSim();
+            });
+        }
     });
 
-    document.getElementById('close-modal').addEventListener('click', closeMatchupModal);
-    window.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal-overlay')) closeMatchupModal();
-    });
+    document.getElementById('run-sim-btn').onclick = runSimulation;
+    document.getElementById('reset-optimal').onclick = resetToOptimal;
+    document.getElementById('close-modal').onclick = closeMatchupModal;
 
-    initWeights(); // Load optimal weights from API
-
-    // System Dark Mode sync (subtle bridge)
-    const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleTheme = (e) => {
-        document.body.classList.toggle('system-dark', e.matches);
+    // Toggle Panels
+    const panels = {
+        'settings-toggle-btn': 'settings-panel',
+        'field-stats-toggle-btn': 'field-stats-panel',
+        'research-lab-toggle-btn': 'research-lab-panel'
     };
-    darkModeQuery.addListener(handleTheme);
-    handleTheme(darkModeQuery);
 
-    // Initial run
-    setTimeout(runSimulation, 500);
+    Object.entries(panels).forEach(([btnId, panelId]) => {
+        const btn = document.getElementById(btnId);
+        const panel = document.getElementById(panelId);
+        if (btn && panel) {
+            btn.onclick = () => {
+                panel.classList.toggle('active');
+            };
+        }
+    });
+
+    // Close buttons
+    document.querySelectorAll('.close-settings, .close-field, .close-research').forEach(btn => {
+        btn.onclick = (e) => {
+            e.target.closest('.settings-modal').classList.remove('active');
+        };
+    });
+
+    // Info Icons -> Open Research Lab
+    const metricDescriptions = {
+        'efficiency': {
+            title: 'Efficiency Index (AdjEM)',
+            desc: 'The gold standard of predictability. It measures the per-possession points margin adjusted for strength of schedule. High weights here lead to a "chalkier" bracket.'
+        },
+        'sos': {
+            title: 'Strength of Schedule',
+            desc: 'A multiplier that rewards teams battle-tested in heavy conferences. High SOS prevents teams with inflated win records from overachieving.'
+        }
+    };
+
+    document.querySelectorAll('.info-icon').forEach(icon => {
+        icon.onclick = () => {
+            const key = icon.getAttribute('data-info');
+            const info = metricDescriptions[key];
+            if (info) {
+                const infoPanel = document.getElementById('metric-info-content');
+                infoPanel.innerHTML = `<strong>${info.title}</strong><p>${info.desc}</p>`;
+                document.getElementById('research-lab-panel').classList.add('active');
+            }
+        };
+    });
+
+    initWeights();
+    fetchTeams(appState.year);
+    runSimulation();
 });
 
 // Expose for debugging/subagents
 window.appState = appState;
 window.runSimulation = runSimulation;
-window.renderBracket = renderBracket;
+window.renderBracket = renderBracketWaterfall;

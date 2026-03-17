@@ -16,6 +16,113 @@
     --sidebar-width: 320px;
 }
 
+.settings-modal {
+    position: fixed;
+    top: 0;
+    right: -420px;
+    width: 400px;
+    height: 100vh;
+    z-index: 1000;
+    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-modal.left {
+    right: auto;
+    left: -420px;
+    transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-modal.center {
+    right: 50%;
+    transform: translate(50%, 0);
+    top: -100vh;
+    bottom: auto;
+    height: auto;
+    width: 500px;
+    transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-modal.active {
+    right: 0;
+}
+
+.settings-modal.left.active {
+    left: 0;
+}
+
+.settings-modal.center.active {
+    top: 100px;
+}
+
+.settings-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 2.5rem;
+    overflow-y: auto;
+    border-radius: 30px;
+    background: rgba(15, 18, 24, 0.95);
+    box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.close-settings {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.info-icon {
+    font-size: 0.8rem;
+    opacity: 0.5;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    transition: opacity 0.2s;
+}
+
+.info-icon:hover {
+    opacity: 1;
+    color: var(--accent-gold);
+}
+
+.instruction-card {
+    background: linear-gradient(135deg, rgba(255, 184, 0, 0.05), transparent);
+}
+
+.metric-info-body {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.metric-info-body strong {
+    display: block;
+    color: var(--accent-gold);
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+/* 4-Quadrant Adjustments */
+.espn-layout {
+    display: grid;
+    grid-template-columns: 1fr 200px 1fr !important;
+    grid-template-areas: 
+        "east final-four west"
+        "south final-four midwest" !important;
+    gap: 3rem;
+}
+
+.region-block {
+    padding: 2rem !important;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -151,12 +258,11 @@ body {
 
 /* Main Layout */
 main {
-    padding: 3rem 5%;
-    display: grid;
-    grid-template-columns: var(--sidebar-width) 1fr;
-    gap: 4rem;
-    max-width: 2000px;
+    padding-top: 100px;
+    min-height: 100vh;
+    max-width: 1600px;
     margin: 0 auto;
+    display: block;
 }
 
 .sidebar {
@@ -255,6 +361,82 @@ input[type="range"] {
 .premium-number:focus {
     border-color: var(--accent-gold);
     box-shadow: 0 0 10px var(--accent-gold-glow);
+}
+
+/* Advanced Research Accordion */
+.control-group.collapsible {
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.group-header {
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.group-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.toggle-icon {
+    font-size: 0.8rem;
+    transition: transform 0.3s ease;
+}
+
+.collapsible.expanded .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.collapsible-content {
+    display: none;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--glass-border);
+}
+
+.collapsible.expanded .collapsible-content {
+    display: block;
+}
+
+.sub-group-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--accent-gold);
+    margin: 1.5rem 0 0.8rem;
+    letter-spacing: 0.1em;
+}
+
+.sub-group-title:first-child {
+    margin-top: 0;
+}
+
+.controls-grid.small {
+    gap: 1rem;
+}
+
+.setting-item.mini {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.setting-item.mini label {
+    margin-bottom: 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    min-width: 80px;
+}
+
+.setting-item.mini input[type="range"] {
+    max-width: 120px;
 }
 
 /* Bracket Visualization */
@@ -580,8 +762,110 @@ input[type="range"] {
     border: 1px solid #1e40af;
 }
 
-.stat-tag {
+/* ESPN-Style 4-Quadrant Layout */
+.espn-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px 1fr;
+    grid-template-areas: 
+        "east final-four west"
+        "south final-four midwest";
+    gap: 2rem;
+    padding: 2rem;
+    perspective: 1000px;
+}
+
+.region-block[data-region="East"] { grid-area: east; --region-accent: #3b82f6; }
+.region-block[data-region="West"] { grid-area: west; --region-accent: #a855f7; }
+.region-block[data-region="South"] { grid-area: south; --region-accent: #22c55e; }
+.region-block[data-region="Midwest"] { grid-area: midwest; --region-accent: #ef4444; }
+.final-four-block { 
+    grid-area: final-four; 
+    --region-accent: var(--accent-gold);
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.region-block h3 {
+    color: var(--region-accent);
+    text-shadow: 0 0 10px rgba(var(--region-accent), 0.3);
+}
+
+.matchup-card:hover {
+    border-color: var(--region-accent);
+    box-shadow: 0 10px 30px rgba(var(--region-accent), 0.2);
+}
+
+.bracket-toolbar {
+    padding: 1rem 2rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: center;
+}
+
+.region-filters {
+    display: flex;
     gap: 0.5rem;
 }
+
+.region-btn {
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.region-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.region-btn.active {
+    background: var(--accent-gold);
+    color: var(--bg-dark);
+}
+
+/* Visibility Utilities for Filtering */
+.region-block.hidden {
+    display: none;
+}
+
+.round-column.dimmed {
+    opacity: 0.2;
+    filter: grayscale(1);
+    pointer-events: none;
+}
+
+/* First Four Indicator */
+.first-four-tag {
+    font-size: 0.6rem;
+    background: var(--accent-orange);
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-left: 5px;
+    text-transform: uppercase;
+}
+
+/* TBD Placeholder */
+.team-line.tbd {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    font-style: italic;
+    border: 1px dashed var(--glass-border);
+}
+
+.champ-winner-glow {
+    animation: winnerPulse 2s infinite alternate;
+}
+
+@keyframes winnerPulse {
+    0% { transform: scale(1); text-shadow: 0 0 10px var(--accent-gold); }
+    100% { transform: scale(1.05); text-shadow: 0 0 30px var(--accent-gold); }
+}
+

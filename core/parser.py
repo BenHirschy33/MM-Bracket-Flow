@@ -34,13 +34,18 @@ def load_teams(csv_filepath: str | Path, year: int = None) -> Dict[str, Team]:
                 continue
             name = row[name_key].strip()
             
+            # Skip empty or invalid team names (nan rows in scraped CSVs)
+            if not name or name.lower() in ('nan', 'none', 'n/a', ''):
+                continue
+            
             team = Team(
                 name=name,
                 seed=int(safe_float(row.get("Seed", 16)) or 16),
-                off_efficiency=safe_float(row.get("AdjO", 100.0)),
-                def_efficiency=safe_float(row.get("AdjD", 100.0)),
-                off_ppg=safe_float(row.get("Off_PPG", 70.0)),
-                def_ppg=safe_float(row.get("Def_PPG", 70.0)),
+                year=year,
+                off_efficiency=safe_float(row.get("AdjO")) or 100.0,
+                def_efficiency=safe_float(row.get("AdjD")) or 100.0,
+                off_ppg=safe_float(row.get("Off_PPG")) or 70.0,
+                def_ppg=safe_float(row.get("Def_PPG")) or 70.0,
                 
                 # Advanced metrics (allow None if missing)
                 pace=safe_float(row.get("Pace")),
@@ -79,8 +84,10 @@ def load_teams(csv_filepath: str | Path, year: int = None) -> Dict[str, Team]:
             if "School" not in headers: headers = next(reader)
             
             for row in reader:
-                if len(row) < 17: continue
+                if len(row) < 2 or not row[1]: continue
                 school = row[1].replace("\xa0NCAA", "").strip()
+                if school.lower() in ('school', ''): continue
+                
                 matched_team = teams.get(school)
                 
                 # Try alternatives if not matched

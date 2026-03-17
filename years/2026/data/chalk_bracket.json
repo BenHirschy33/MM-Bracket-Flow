@@ -2,13 +2,13 @@
   "name": "2026 Selection Sunday - Projected Chalk",
   "regions": {
     "East": {
-      "1": "Duke", "16": "Grambling", "8": "Kentucky", "9": "Villanova",
+      "1": "Duke", "16a": "Grambling", "16b": "Montana State", "8": "Kentucky", "9": "Villanova",
       "5": "Connecticut", "12": "McNeese State", "4": "Tennessee", "13": "Vermont",
       "6": "Kansas", "11": "Indiana", "3": "Auburn", "14": "Colgate",
       "7": "Wisconsin", "10": "Texas", "2": "North Carolina", "15": "Oakland"
     },
     "West": {
-      "1": "Michigan", "16": "Norfolk State", "8": "Florida", "9": "St. John's (NY)",
+      "1": "Michigan", "16a": "Norfolk State", "16b": "Howard", "8": "Florida", "9": "St. John's (NY)",
       "5": "Iowa State", "12": "Grand Canyon", "4": "Purdue", "13": "Morehead State",
       "6": "Creighton", "11": "Providence", "3": "Gonzaga", "14": "Samford",
       "7": "San Diego State", "10": "Michigan State", "2": "Marquette", "15": "Montana"

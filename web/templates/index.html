@@ -17,199 +17,139 @@
     <header class="glass-nav">
         <div class="logo-container">
             <h1 class="glow-text">MM-BRACKET-FLOW</h1>
-            <p class="subtitle">The Hirschy Factor Simulation Engine</p>
+            <p class="subtitle">Advanced Prediction Engine</p>
         </div>
         <div class="header-controls">
             <select id="year-select" class="premium-select">
                 <option value="2026">2026 Tournament</option>
                 <option value="2025">2025 (Historical)</option>
                 <option value="2024">2024 (Historical)</option>
-                <option value="2023">2023 (Historical)</option>
-                <option value="2022">2022 (Historical)</option>
-                <option value="2021">2021 (Historical)</option>
-                <option value="2019">2019 (Historical)</option>
-                <option value="2015">2015 (Historical)</option>
-                <option value="2010">2010 (Historical)</option>
-                <option value="2005">2005 (Historical)</option>
-                <option value="2000">2000 (Historical)</option>
             </select>
+            <button id="settings-toggle-btn" class="premium-btn secondary">⚙️ Simulation Guru</button>
+            <button id="field-stats-toggle-btn" class="premium-btn secondary">📊 Field Stats</button>
+            <button id="research-lab-toggle-btn" class="premium-btn secondary">🔬 Research Lab</button>
             <button id="run-sim-btn" class="premium-btn primary">Run Hyper-Simulation</button>
         </div>
     </header>
 
     <main>
-        <aside class="sidebar">
-            <section id="simulation-controls" class="sidebar-card glass-panel">
-                <div class="sidebar-header">
-                    <h2>Simulation Settings</h2>
-                    <p class="sidebar-subtitle">Tweak Hirschy Factors to predict chaos</p>
-                    <button id="reset-optimal" class="icon-btn" title="Reset to Optimal Factors">🔄</button>
+        <!-- Floating Settings Panel -->
+        <div id="settings-panel" class="settings-modal">
+            <div class="settings-content glass">
+                <div class="settings-header">
+                    <h2>Simulation Guru</h2>
+                    <button class="close-settings">&times;</button>
                 </div>
                 
-                <div class="control-groups">
-                    <div class="control-group">
-                        <h3 class="group-title">Primary Weights</h3>
-                        <div class="controls-grid">
-                            <div class="setting-item">
-                                <label>Efficiency Index</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-eff" min="0" max="0.1" step="0.001" value="0.022">
-                                    <input type="number" id="num-eff" min="0" max="0.1" step="0.001" value="0.022" class="premium-number">
+                <section id="simulation-controls" class="sidebar-card">
+                    <div class="sidebar-header">
+                        <p class="sidebar-subtitle">Tweak factors to predict chaos</p>
+                        <button id="reset-optimal" class="premium-btn secondary small">🔄 Reset Factors</button>
+                    </div>
+                    
+                    <div class="control-groups">
+                        <!-- Primary Weights Section -->
+                        <div class="control-group">
+                            <h3 class="group-title">Primary Weights <span class="info-icon" data-info="efficiency">ℹ️</span></h3>
+                            <div class="controls-grid">
+                                <div class="setting-item">
+                                    <label>Efficiency Index</label>
+                                    <div class="control-row">
+                                        <input type="range" id="weight-eff" min="0" max="0.1" step="0.001" value="0.022">
+                                        <input type="number" id="num-eff" min="0" max="0.1" step="0.001" value="0.022" class="premium-number">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>Strength of Schedule</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-sos" min="0" max="20" step="0.1" value="7.6">
-                                    <input type="number" id="num-sos" min="0" max="20" step="0.1" value="7.6" class="premium-number">
+                                <div class="setting-item">
+                                    <label>Strength of Schedule</label>
+                                    <div class="control-row">
+                                        <input type="range" id="weight-sos" min="0" max="20" step="0.1" value="7.6">
+                                        <input type="number" id="num-sos" min="0" max="20" step="0.1" value="7.6" class="premium-number">
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="control-group">
-                        <h3 class="group-title">Analytical Modifiers</h3>
-                        <div class="controls-grid">
-                            <div class="setting-item">
-                                <label>TRB Advantage</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-trb" min="0" max="10" step="0.1" value="4.9">
-                                    <input type="number" id="num-trb" min="0" max="10" step="0.1" value="4.9" class="premium-number">
+                        <!-- Analytical Modifiers -->
+                        <div class="control-group">
+                            <h3 class="group-title">Performance Modifiers</h3>
+                            <div class="controls-grid">
+                                <div class="setting-item">
+                                    <label>TRB Advantage</label>
+                                    <div class="control-row">
+                                        <input type="range" id="weight-trb" min="0" max="10" step="0.1" value="4.9">
+                                        <input type="number" id="num-trb" min="0" max="10" step="0.1" value="4.9" class="premium-number">
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <label>Momentum</label>
+                                    <div class="control-row">
+                                        <input type="range" id="weight-momentum" min="0" max="0.5" step="0.01" value="0.07">
+                                        <input type="number" id="num-momentum" min="0" max="0.5" step="0.01" value="0.07" class="premium-number">
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <label>Def Premium</label>
+                                    <div class="control-row">
+                                        <input type="range" id="weight-def-premium" min="0" max="15" step="0.1" value="8.9">
+                                        <input type="number" id="num-def-premium" min="0" max="15" step="0.1" value="8.9" class="premium-number">
+                                    </div>
                                 </div>
                             </div>
-                            <div class="setting-item">
-                                <label>TO Margin Factor</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-to" min="0" max="10" step="0.1" value="2.8">
-                                    <input type="number" id="num-to" min="0" max="10" step="0.1" value="2.8" class="premium-number">
-                                </div>
+                        </div>
+                        
+                        <!-- Advanced (Divine) Logic -->
+                        <div class="control-group collapsible">
+                            <div class="group-header">
+                                <h3 class="group-title">Advanced Research (Divine)</h3>
+                                <span class="toggle-icon">▼</span>
                             </div>
-                            <div class="setting-item">
-                                <label>Momentum</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-momentum" min="0" max="0.5" step="0.01" value="0.07">
-                                    <input type="number" id="num-momentum" min="0" max="0.5" step="0.01" value="0.07" class="premium-number">
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>FT Advantage</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-ft" min="0" max="5" step="0.1" value="0.9">
-                                    <input type="number" id="num-ft" min="0" max="5" step="0.1" value="0.9" class="premium-number">
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>Def Premium</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-def-premium" min="0" max="15" step="0.1" value="8.9">
-                                    <input type="number" id="num-def-premium" min="0" max="15" step="0.1" value="8.9" class="premium-number">
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>ORB Density (2025)</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-orb-density" min="0" max="5" step="0.1" value="1.4">
-                                    <input type="number" id="num-orb-density" min="0" max="5" step="0.1" value="1.4" class="premium-number">
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>Luck Regression</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-luck-regression" min="0" max="1" step="0.01" value="0.12">
-                                    <input type="number" id="num-luck-regression" min="0" max="1" step="0.01" value="0.12" class="premium-number">
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>Coach Moxie</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-coach-moxie" min="0" max="1" step="0.01" value="0.15">
-                                    <input type="number" id="num-coach-moxie" min="0" max="1" step="0.01" value="0.15" class="premium-number">
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>Tempo Upset Factor</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-tempo-upset" min="0" max="0.5" step="0.01" value="0.08">
-                                    <input type="number" id="num-tempo-upset" min="0" max="0.5" step="0.01" value="0.08" class="premium-number">
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>Fatigue Sensitivity</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-fatigue" min="0" max="1" step="0.05" value="0.2">
-                                    <input type="number" id="num-fatigue" min="0" max="1" step="0.05" value="0.2" class="premium-number">
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>Bench Depth Bonus</label>
-                                <div class="control-row">
-                                    <input type="range" id="weight-bench" min="0" max="1" step="0.05" value="0.15">
-                                    <input type="number" id="num-bench" min="0" max="1" step="0.05" value="0.15" class="premium-number">
+                            <div class="collapsible-content">
+                                <div class="controls-grid small">
+                                    <div class="setting-item mini">
+                                        <label>Intuition Factor</label>
+                                        <input type="range" id="weight-intuition-factor" min="0" max="1" step="0.01" value="0.1">
+                                    </div>
+                                    <div class="setting-item mini">
+                                        <label>Composure Index</label>
+                                        <input type="range" id="weight-composure-index-weight" min="0" max="1" step="0.01" value="0.1">
+                                    </div>
+                                    <div class="setting-item mini">
+                                        <label>Upset Delta</label>
+                                        <input type="range" id="weight-upset-delta-weight" min="0" max="1" step="0.01" value="0.1">
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </section>
+            </div>
+        </div>
 
-            <section id="stats-overview" class="glass-card">
-                <div class="card-header">
+        <!-- Field Stats Panel -->
+        <div id="field-stats-panel" class="settings-modal left">
+            <div class="settings-content glass">
+                <div class="settings-header">
                     <h2>Field Stats</h2>
-                    <div class="badge">Live 2026</div>
+                    <button class="close-field">&times;</button>
                 </div>
                 <div class="team-grid" id="team-list">
                     <div class="loading-spinner"></div>
                 </div>
-            </section>
+            </div>
+        </div>
 
-            <section id="factor-guide" class="glass-card">
-                <div class="card-header">
-                    <h2>Hirschy Factor Guide</h2>
+        <!-- Research Lab Panel (Factor Intelligence) -->
+        <div id="research-lab-panel" class="settings-modal center">
+            <div class="settings-content glass narrow">
+                <div class="settings-header">
+                    <h2>Research Lab</h2>
+                    <button class="close-research">&times;</button>
                 </div>
-                <div class="guide-content">
-                    <div class="guide-item">
-                        <strong>Efficiency Index (EFF)</strong>
-                        <p>The core health of a team. Measures point-per-possession margin Adjusted for SOS. The higher the weight, the more 'Chalk' the simulation reflects.</p>
-                    </div>
-                    <div class="guide-item">
-                        <strong>Free Throw Advantage (FT)</strong>
-                        <p>Measures a team's ability to capitalize on easy points while limiting opponent opportunities. Critical for close game simulations.</p>
-                    </div>
-                    <div class="guide-item">
-                        <strong>Defensive Premium</strong>
-                        <p>Hyper-weights defensive efficiency. High values favor elite defensive units even if they struggle offensively.</p>
-                    </div>
-                    <div class="guide-item">
-                        <strong>The SOS Multiplier</strong>
-                        <p>Applies a toughness coefficient. Teams with higher SOS get a win probability boost against teams with 'inflated' records.</p>
-                    </div>
-                    <div class="guide-item">
-                        <strong>ORB Density (2025)</strong>
-                        <p>Teams with >34% offensive rebounding rate get second-chance scoring multipliers. Glass-crashing juggernauts reduce variance in close games.</p>
-                    </div>
-                    <div class="guide-item">
-                        <strong>Coach Moxie</strong>
-                        <p>Coaches with Elite Eight+ experience are the strongest predictor for deep runs. Mark Few (83% career win rate) is the benchmark. Rewards tournament institutional knowledge.</p>
-                    </div>
-                    <div class="guide-item">
-                        <strong>Tempo Upset Factor</strong>
-                        <p>Underdogs who play below 65 adjusted tempo deliberately compress the talent gap. Successful Cinderellas rank outside the top 100 in KenPom tempo.</p>
-                    </div>
-                    <div class="guide-item">
-                        <strong>Fatigue Sensitivity</strong>
-                        <p>Applies a win probability penalty in the second game of a weekend (R32, E8). Teams that play at a fast tempo are penalized more on short rest.</p>
-                    </div>
-                    <div class="guide-item">
-                        <strong>Bench Depth Bonus</strong>
-                        <p>Rewards teams with high bench usage. Deep rotations mitigate the effects of fatigue on short rest, providing a crucial edge in Sunday/Tuesday games.</p>
-                    </div>
-                    <div class="guide-item">
-                        <strong>Luck Regression</strong>
-                        <p>KenPom Luck > 0.05 teams are statistically 'due' for regression. Negative Luck + Top-30 defense = undervalued Grit team.</p>
-                    </div>
+                <div id="metric-info-content" class="metric-info-body">
+                    <p class="placeholder-text">Click an ℹ️ icon in the Simulation Guru to analyze factor dynamics.</p>
                 </div>
-            </section>
-        </aside>
+            </div>
+        </div>
 
         <section id="bracket-visualization" class="glass-card">
             <div class="card-header">
@@ -219,7 +159,17 @@
                     <button class="tab-btn" data-mode="monte-carlo">Simulated Chaos</button>
                 </div>
             </div>
-            <div id="bracket-container" class="bracket-stage">
+            <div class="bracket-toolbar">
+                <div class="region-filters">
+                    <button class="region-btn active" data-region="all">All Regions</button>
+                    <button class="region-btn" data-region="East">East</button>
+                    <button class="region-btn" data-region="West">West</button>
+                    <button class="region-btn" data-region="South">South</button>
+                    <button class="region-btn" data-region="Midwest">Midwest</button>
+                    <button class="region-btn" data-region="final-four">Final Four</button>
+                </div>
+            </div>
+            <div id="bracket-container" class="bracket-stage espn-layout">
                 <div class="empty-state">
                     <p>Initialize the 2026 bracket flow to begin simulation.</p>
                 </div>
@@ -228,7 +178,7 @@
     </main>
 
     <footer>
-        <p>&copy; 2026 MM-Bracket-Flow. Built for Purdue Dominance.</p>
+        <p>&copy; 2026 MM-Bracket-Flow. Built for Prediction Mastery.</p>
     </footer>
 
     <!-- Matchup Detail Modal -->

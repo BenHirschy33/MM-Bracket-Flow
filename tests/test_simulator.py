@@ -29,7 +29,7 @@ def test_simulator_matchup_chalk():
     assert winner.name == "Duke"
 
 def test_simulator_intuition_modifier():
-    """Verify the 'Hirschy Factor' correctly impacts probability."""
+    """Verify the 'Intuition Factor' correctly impacts probability."""
     # Two extremely evenly matched teams
     team_a = Team("A", 4, 115.0, 95.0, 75.0, 65.0)
     team_b = Team("B", 5, 115.0, 95.0, 75.0, 65.0)

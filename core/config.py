@@ -51,8 +51,132 @@ class SimulationWeights:
     rhythm_bonus: float = 0.0              # Momentum from play-in/close R64 win
     
     # Rounds 31-33: Final Convergence
-    hirschy_factor_weight: float = 0.0     # Composite metric dominance
+    intuition_factor_weight: float = 0.0     # Composite metric dominance
     blue_blood_bonus: float = 0.0          # Historical program success weight
+    
+    # Rounds 34-40: Batch 6 - Situational Mastery
+    shot_clock_weight: float = 0.0         # Efficiency in final 5s of clock
+    drought_weight: float = 0.0            # Resilience vs scoreless streaks
+    follow_up_weight: float = 0.0          # Efficiency on possessions post-ORB
+    stopper_weight: float = 0.0            # Lockdown defense vs high-usage stars
+    three_volatility_weight: float = 0.0   # Impact of high-volume 3PT cold streaks
+    timeout_weight: float = 0.0            # Coaching efficiency in late-game TOs
+    proximity_weight: float = 0.0          # Relative home-court (distance to venue)
+    
+    # Rounds 41-50: Batch 7 - Roster & Health Stability
+    foul_resilience_weight: float = 0.0    # Resilience when key players have 3+ fouls
+    ot_depth_weight: float = 0.0           # Advantage in overtime games for deep teams
+    usage_fatigue_weight: float = 0.0      # Efficiency decay for stars > 35 min avg
+    portal_chemistry_weight: float = 0.0   # Penalty for high transfer reliance in March
+    rust_reset_weight: float = 0.0         # 1-seed reset after conference tourney loss
+    playin_rhythm_weight: float = 0.0      # Boost for play-in winners in R64
+    three_def_sos_weight: float = 0.0      # 3PT defense adjusted for opponent difficulty
+    backcourt_exp_weight: float = 0.0      # Guard experience multiplier for deep runs
+    rim_protection_weight: float = 0.0     # Defensive 2PT% impact on rim efficiency
+    choke_factor_weight: float = 0.0       # FT% volatility in final 2 minutes
+    
+    # Rounds 51-60: Batch 8 - Era-Specific Historical Replay
+    defensive_grit_bias: float = 0.0       # Weight multiplier for physical defense eras
+    three_point_dominance: float = 0.0     # Adaptive 3PAr weighting for modern explosion
+    rim_pressure_multiplier: float = 0.0   # Impact of 2023+ charge rule changes
+    pace_sensitivity: float = 0.0          # Sensitivity to 30s vs 35s shot clock speed
+    
+    # Rounds 61-70: Batch 9 - Advanced Tactical Mechanics
+    zone_efficiency_weight: float = 0.0     # Zone effectiveness against 3PT heavy teams
+    press_disruption_weight: float = 0.0    # Turnover generation vs fatigue in 2nd half
+    pace_control_weight: float = 0.0        # Ability to force preferred tempo (Pace Killer archetype)
+    rotation_depth_weight: float = 0.0      # Bonus for 8+ man rotations in high-possession games
+    half_adjustment_v2: float = 0.0         # Refined 2nd half coaching shift
+    
+    # Rounds 71-80: Batch 10 - Cinderella Dynamics
+    mid_major_boost: float = 0.0            # Underseeded mid-major efficiency multiplier
+    cinderella_momentum: float = 0.0        # Performance boost for 10-12 seeds in R2+
+    auto_qualifier_rhythm: float = 0.0      # Bonus for non-power conf tourney winners
+    seed_12_5_bias: float = 0.0             # Specific historical 12-vs-5 volatility
+    
+    # Rounds 81-93: Batch 11 - Clutch & Fatigue Management
+    clutch_efficiency_weight: float = 0.0   # 2PT efficiency boost in final 5 minutes
+    short_bench_boost: float = 0.0          # Efficiency boost for teams with elite 7-8 man rotations
+    pressure_stability_weight: float = 0.0 # Turnover resistance in late-round pressure
+    coach_clutch_multiplier: float = 0.0    # Moxie impact on 1-possession game outcomes
+    
+    # Rounds 94-100: Batch 12 - Tournament DNA & Calibration
+    blue_blood_aura: float = 0.0            # First-round stability for legacy programs
+    committee_error_bias: float = 0.0       # Boost for underseeded (KenPom > Seed) teams
+    
+    # Phase 2: Rounds 101-110 - The Physicality Crisis
+    hand_check_penalty: float = 0.0          # Turbulence for small guards (Pre-2010)
+    post_dominance_weight: float = 0.0       # Added impact of rim protection (Pre-2010)
+    slow_pace_stability: float = 0.0         # Reward for deliberate play (Pre-2015)
+    
+    # Phase 2: Rounds 111-120 - The 3-Point Revolution
+    three_point_variance_multiplier: float = 0.0 # Higher 3PT attempts = higher luck dependency (Post-2015)
+    freedom_of_movement_boost: float = 0.0     # Off efficiency boost for foul drawers (Post-2013)
+    
+    # Phase 2: Rounds 121-130 - NIL & Portal Volatility
+    portal_instability_penalty: float = 0.0   # Risk for high-portal usage teams in early rounds (Post-2021)
+    nil_resource_advantage: float = 0.0       # Slight boost for power-conf high-resource programs
+    
+    # Phase 2: Rounds 131-140 - Dynamic Momentum Decay
+    conf_tourney_marathon_fatigue: float = 0.0 # Penalty for teams winning 4+ games in 4 days
+    elite_conf_momentum_boost: float = 0.0     # Bonus for Big East/Big 12 winners
+    
+    # Phase 2: Rounds 141-150 - Venue Specificity
+    altitude_fatigue_penalty: float = 0.0      # Impact for low-to-high altitude travel
+    altitude_ft_decay: float = 0.0            # Precision loss at Denver/SLC venues
+    
+    # Phase 2: Rounds 151-160 - Personnel Specificity
+    star_reliance_penalty: float = 0.0        # Vulnerability for teams with 1-star focus
+    deep_bench_stability: float = 0.0        # Bonus for high-usage rotation teams
+    
+    # Phase 2: Rounds 161-170 - Coaching Tenacity
+    coach_final_four_aura: float = 0.0       # Boost for tenure and deep tourney runs
+    
+    # Phase 2: Rounds 171-180 - Resume Dominance
+    quad_1_resilience_weight: float = 0.0    # Proxy for top-tier win frequency
+    
+    # Phase 2: Rounds 181-190 - Three-Point Gravity
+    three_point_gravity_weight: float = 0.0  # Boost for interior efficiency via spacing
+    
+    # Phase 2: Rounds 191-200 - Final Era Calibration
+    era_crossover_stability: float = 0.0     # Smooths transitions between era weights
+    
+    # Cycle 3: Rounds 201-215 - Archetype Matchup Logic
+    glass_pace_interaction_weight: float = 0.0 # Matchup bias for ORB-heavy vs Slow-Pace
+    small_ball_bias_modern: float = 0.0        # Efficiency boost for modern perimeter lineups
+    
+    # Cycle 3: Rounds 216-230 - Tournament Resilience
+    low_seed_adrenaline_crash: float = 0.0     # Round 2 penalty for double-digit upset winners
+    eleven_seed_sustainability: float = 0.0    # Legacy boost for No. 11 seeds in deep runs
+    
+    # Cycle 3: Rounds 231-250 - Intuition Factor Refinement
+    composure_index_weight: float = 0.0       # Bonus for high-metric/low-luck teams
+    upset_delta_weight: float = 0.0           # Scaling for seed dominance interaction
+    
+    # Cycle 3: Rounds 251-265 - Tactical Sophistication
+    rim_contest_frequency_weight: float = 0.0  # Proxy: (Opp Rim Rate) * (1 - Opp Rim FG%) / (Def FT Rate)
+    off_ball_movement_weight: float = 0.0      # Proxy: (Ast Rate) * (3P Assisted Rate) * (Adj Tempo)
+    gravity_adjusted_3p_weight: float = 0.0     # Formula: (3P% / Avg) * (3PA Rate / Avg)
+    
+    # Cycle 3: Rounds 266-280 - Era Excellence & Portal Regression
+    era_excellence_physicality_weight: float = 0.0 # Formula: (DRB% + Steal Rate) > 1.25 * Avg
+    era_excellence_modern_weight: float = 0.0      # Formula: (Ast/TO) * (Opp TO%)
+    portal_instability_coefficient_weight: float = 0.0 # Regression for high transfer usage
+    
+    # Cycle 3: Rounds 281-300 - Elite Eight Scarcity
+    elite_eight_cinderella_wall: float = 0.0   # Penalty for >= 11 seeds in Elite Eight
+    blue_blood_final_weekend_boost: float = 0.0 # Aura boost for core programs in R4-R6
+    veteran_backcourt_scaling: float = 0.0     # Amplifies guard experience in later rounds
+    
+    # Cycle 3: Rounds 301-315 - Defensive Continuity & Shot Selection
+    defensive_switching_continuity: float = 0.0 # Multiplier for switching-ready experienced rosters
+    mid_range_march_value: float = 0.0          # Value of "inefficient" mid-range shots in late rounds
+    defensive_versatility_index: float = 0.0    # Boost for versatile bigs in mismatch prevention
+    
+    # Cycle 3: Rounds 316-333 - Final Calibration & Tournament Aura
+    tournament_aura_boost: float = 0.0          # Aura boost for multi-championship programs
+    accumulative_travel_fatigue: float = 0.0     # Penalty for miles traveled/time zones crossed
+    championship_pedigree_weight: float = 0.0    # Boost for specific non-losing championship programs
     
     # Global Modifiers
     defense_premium: float = 6.479         # Global multiplier for defensive metrics

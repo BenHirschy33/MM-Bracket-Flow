@@ -148,8 +148,122 @@ def optimize_simulated_annealing(iterations=10000, temp=2.0, cooling_rate=0.9998
                 "rhythm_bonus": max(0, current_weights.rhythm_bonus + random.uniform(-0.02, 0.02)),
 
                 # Rounds 31-33: Final Convergence
-                "hirschy_factor_weight": max(0, current_weights.hirschy_factor_weight + random.uniform(-0.1, 0.1)),
+                "intuition_factor_weight": max(0, current_weights.intuition_factor_weight + random.uniform(-0.1, 0.1)),
                 "blue_blood_bonus": max(0, current_weights.blue_blood_bonus + random.uniform(-0.1, 0.1)),
+
+                # Rounds 34-40: Batch 6 - Situational Mastery
+                "shot_clock_weight": max(0, current_weights.shot_clock_weight + random.uniform(-0.1, 0.1)),
+                "drought_weight": max(0, current_weights.drought_weight + random.uniform(-0.1, 0.1)),
+                "follow_up_weight": max(0, current_weights.follow_up_weight + random.uniform(-0.1, 0.1)),
+                "stopper_weight": max(0, current_weights.stopper_weight + random.uniform(-0.1, 0.1)),
+                "three_volatility_weight": max(0, current_weights.three_volatility_weight + random.uniform(-0.1, 0.1)),
+                "timeout_weight": max(0, current_weights.timeout_weight + random.uniform(-0.1, 0.1)),
+                "proximity_weight": max(0, current_weights.proximity_weight + random.uniform(-0.1, 0.1)),
+
+                # Rounds 41-50: Batch 7 - Roster & Health Stability
+                "foul_resilience_weight": max(0, current_weights.foul_resilience_weight + random.uniform(-0.1, 0.1)),
+                "ot_depth_weight": max(0, current_weights.ot_depth_weight + random.uniform(-0.1, 0.1)),
+                "usage_fatigue_weight": max(0, current_weights.usage_fatigue_weight + random.uniform(-0.1, 0.1)),
+                "portal_chemistry_weight": max(0, current_weights.portal_chemistry_weight + random.uniform(-0.1, 0.1)),
+                "rust_reset_weight": max(0, current_weights.rust_reset_weight + random.uniform(-0.1, 0.1)),
+                "playin_rhythm_weight": max(0, current_weights.playin_rhythm_weight + random.uniform(-0.1, 0.1)),
+                "three_def_sos_weight": max(0, current_weights.three_def_sos_weight + random.uniform(-0.1, 0.1)),
+                "backcourt_exp_weight": max(0, current_weights.backcourt_exp_weight + random.uniform(-0.1, 0.1)),
+                "rim_protection_weight": max(0, current_weights.rim_protection_weight + random.uniform(-0.1, 0.1)),
+                "choke_factor_weight": max(0, current_weights.choke_factor_weight + random.uniform(-0.1, 0.1)),
+
+                # Rounds 51-60: Batch 8 - Era-Specific Historical Replay
+                "defensive_grit_bias": max(0, current_weights.defensive_grit_bias + random.uniform(-0.1, 0.1)),
+                "three_point_dominance": max(0, current_weights.three_point_dominance + random.uniform(-0.1, 0.1)),
+                "rim_pressure_multiplier": max(0, current_weights.rim_pressure_multiplier + random.uniform(-0.1, 0.1)),
+                "pace_sensitivity": max(0, current_weights.pace_sensitivity + random.uniform(-0.1, 0.1)),
+
+                # Rounds 61-70: Batch 9 - Advanced Tactical Mechanics
+                "zone_efficiency_weight": max(0, current_weights.zone_efficiency_weight + random.uniform(-0.1, 0.1)),
+                "press_disruption_weight": max(0, current_weights.press_disruption_weight + random.uniform(-0.1, 0.1)),
+                "pace_control_weight": max(0, current_weights.pace_control_weight + random.uniform(-0.1, 0.1)),
+                "rotation_depth_weight": max(0, current_weights.rotation_depth_weight + random.uniform(-0.1, 0.1)),
+                "half_adjustment_v2": max(0, current_weights.half_adjustment_v2 + random.uniform(-0.1, 0.1)),
+
+                # Rounds 71-80: Batch 10 - Cinderella Dynamics
+                "mid_major_boost": max(0, current_weights.mid_major_boost + random.uniform(-0.1, 0.1)),
+                "cinderella_momentum": max(0, current_weights.cinderella_momentum + random.uniform(-0.1, 0.1)),
+                "auto_qualifier_rhythm": max(0, current_weights.auto_qualifier_rhythm + random.uniform(-0.1, 0.1)),
+                "seed_12_5_bias": max(0, current_weights.seed_12_5_bias + random.uniform(-0.1, 0.1)),
+
+                # Rounds 81-93: Batch 11 - Clutch & Fatigue Management
+                "clutch_efficiency_weight": max(0, current_weights.clutch_efficiency_weight + random.uniform(-0.1, 0.1)),
+                "short_bench_boost": max(0, current_weights.short_bench_boost + random.uniform(-0.1, 0.1)),
+                "pressure_stability_weight": max(0, current_weights.pressure_stability_weight + random.uniform(-0.1, 0.1)),
+                "coach_clutch_multiplier": max(0, current_weights.coach_clutch_multiplier + random.uniform(-0.1, 0.1)),
+
+                # Rounds 94-100: Batch 12 - Tournament DNA & Calibration
+                "blue_blood_aura": max(0, current_weights.blue_blood_aura + random.uniform(-0.1, 0.1)),
+                "committee_error_bias": max(0, current_weights.committee_error_bias + random.uniform(-0.1, 0.1)),
+
+                # Phase 2: Rounds 101-110 - The Physicality Crisis
+                "hand_check_penalty": max(0, current_weights.hand_check_penalty + random.uniform(-0.1, 0.1)),
+                "post_dominance_weight": max(0, current_weights.post_dominance_weight + random.uniform(-0.1, 0.1)),
+                "slow_pace_stability": max(0, current_weights.slow_pace_stability + random.uniform(-0.1, 0.1)),
+
+                # Phase 2: Rounds 111-130
+                "three_point_variance_multiplier": max(0, current_weights.three_point_variance_multiplier + random.uniform(-0.1, 0.1)),
+                "freedom_of_movement_boost": max(0, current_weights.freedom_of_movement_boost + random.uniform(-0.1, 0.1)),
+                "portal_instability_penalty": max(0, current_weights.portal_instability_penalty + random.uniform(-0.1, 0.1)),
+                "nil_resource_advantage": max(0, current_weights.nil_resource_advantage + random.uniform(-0.1, 0.1)),
+                
+                # Phase 2: Rounds 131-150
+                "conf_tourney_marathon_fatigue": max(0, current_weights.conf_tourney_marathon_fatigue + random.uniform(-0.1, 0.1)),
+                "elite_conf_momentum_boost": max(0, current_weights.elite_conf_momentum_boost + random.uniform(-0.1, 0.1)),
+                "altitude_fatigue_penalty": max(0, current_weights.altitude_fatigue_penalty + random.uniform(-0.1, 0.1)),
+                "altitude_ft_decay": max(0, current_weights.altitude_ft_decay + random.uniform(-0.1, 0.1)),
+
+                # Phase 2: Rounds 151-180
+                "star_reliance_penalty": max(0, current_weights.star_reliance_penalty + random.uniform(-0.1, 0.1)),
+                "deep_bench_stability": max(0, current_weights.deep_bench_stability + random.uniform(-0.1, 0.1)),
+                "coach_final_four_aura": max(0, current_weights.coach_final_four_aura + random.uniform(-0.1, 0.1)),
+                "quad_1_resilience_weight": max(0, current_weights.quad_1_resilience_weight + random.uniform(-0.1, 0.1)),
+
+                # Phase 2: Rounds 181-200
+                "three_point_gravity_weight": max(0, current_weights.three_point_gravity_weight + random.uniform(-0.1, 0.1)),
+                "era_crossover_stability": max(0, current_weights.era_crossover_stability + random.uniform(-0.1, 0.1)),
+
+                # Cycle 3: Rounds 201-215
+                "glass_pace_interaction_weight": max(0, current_weights.glass_pace_interaction_weight + random.uniform(-0.1, 0.1)),
+                "small_ball_bias_modern": max(0, current_weights.small_ball_bias_modern + random.uniform(-0.1, 0.1)),
+
+                # Cycle 3: Rounds 216-230
+                "low_seed_adrenaline_crash": max(0, current_weights.low_seed_adrenaline_crash + random.uniform(-0.1, 0.1)),
+                "eleven_seed_sustainability": max(0, current_weights.eleven_seed_sustainability + random.uniform(-0.1, 0.1)),
+
+                # Cycle 3: Rounds 231-250
+                "composure_index_weight": max(0, current_weights.composure_index_weight + random.uniform(-0.1, 0.1)),
+                "upset_delta_weight": max(0, current_weights.upset_delta_weight + random.uniform(-0.1, 0.1)),
+
+                # Cycle 3: Rounds 251-265
+                "rim_contest_frequency_weight": max(0, current_weights.rim_contest_frequency_weight + random.uniform(-0.1, 0.1)),
+                "off_ball_movement_weight": max(0, current_weights.off_ball_movement_weight + random.uniform(-0.1, 0.1)),
+                "gravity_adjusted_3p_weight": max(0, current_weights.gravity_adjusted_3p_weight + random.uniform(-0.1, 0.1)),
+
+                # Cycle 3: Rounds 266-280
+                "era_excellence_physicality_weight": max(0, current_weights.era_excellence_physicality_weight + random.uniform(-0.1, 0.1)),
+                "era_excellence_modern_weight": max(0, current_weights.era_excellence_modern_weight + random.uniform(-0.1, 0.1)),
+                "portal_instability_coefficient_weight": max(0, current_weights.portal_instability_coefficient_weight + random.uniform(-0.1, 0.1)),
+
+                # Cycle 3: Rounds 281-300
+                "elite_eight_cinderella_wall": max(0, current_weights.elite_eight_cinderella_wall + random.uniform(-0.1, 0.1)),
+                "blue_blood_final_weekend_boost": max(0, current_weights.blue_blood_final_weekend_boost + random.uniform(-0.1, 0.1)),
+                "veteran_backcourt_scaling": max(0, current_weights.veteran_backcourt_scaling + random.uniform(-0.1, 0.1)),
+
+                # Cycle 3: Rounds 301-315
+                "defensive_switching_continuity": max(0, current_weights.defensive_switching_continuity + random.uniform(-0.1, 0.1)),
+                "mid_range_march_value": max(0, current_weights.mid_range_march_value + random.uniform(-0.1, 0.1)),
+                "defensive_versatility_index": max(0, current_weights.defensive_versatility_index + random.uniform(-0.1, 0.1)),
+
+                # Cycle 3: Rounds 316-333
+                "tournament_aura_boost": max(0, current_weights.tournament_aura_boost + random.uniform(-0.1, 0.1)),
+                "accumulative_travel_fatigue": max(0, current_weights.accumulative_travel_fatigue + random.uniform(-0.1, 0.1)),
+                "championship_pedigree_weight": max(0, current_weights.championship_pedigree_weight + random.uniform(-0.1, 0.1)),
 
                 "chaos_mode": False
             }
