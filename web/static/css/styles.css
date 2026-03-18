@@ -198,8 +198,8 @@
 .bracket-stage {
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
-    gap: 12rem; /* Increased gap to prevent overlap */
+    align-items: center; /* Centers Finale vertically relative to the entire 4-region column */
+    gap: 6rem; /* Restored more reasonable gap since Finale is its own column */
     padding: 2rem 4rem;
     min-width: max-content;
     transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
@@ -231,12 +231,12 @@
     align-items: flex-start;
     gap: 2.5rem; /* Slightly more gap for column separation */
     width: max-content;
-    height: 3328px; /* 64 rows * 52px */
+    height: 832px; /* 16 rows * 52px per region */
 }
 
 .round-column {
     display: grid;
-    grid-template-rows: repeat(64, 52px); /* Taller rows to prevent clipping */
+    grid-template-rows: repeat(16, 52px); /* 16 mathematical rows per region */
     width: 15rem; /* Slightly wider */
     height: 100%;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
@@ -248,8 +248,8 @@
 }
 
 .final_four_block { 
-    align-self: flex-start;
-    margin-top: 10rem;
+    align-self: center; /* Vertically centered */
+    margin-top: 0; 
     background: linear-gradient(180deg, rgba(255, 184, 0, 0.08), transparent);
     border-radius: 24px;
     padding: 2rem;
@@ -297,6 +297,8 @@
     box-sizing: border-box;
     overflow: hidden;
     gap: 6px;
+    z-index: 10;
+    pointer-events: auto;
 }
 
 .matchup-card:hover {
@@ -379,7 +381,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 3rem;
+    padding: 0.5rem 2rem; /* Tighter header */
     background: rgba(10, 12, 16, 0.85);
     backdrop-filter: blur(30px);
     border-bottom: 1px solid var(--glass-border);
@@ -389,7 +391,7 @@ body {
 }
 
 .glow-text {
-    font-size: 1.8rem;
+    font-size: 1.4rem; /* Smaller text to clear space */
     font-weight: 800;
     letter-spacing: 0.1em;
     background: linear-gradient(135deg, #ffffff, var(--accent-gold));
@@ -705,6 +707,9 @@ input[type="range"] {
     font-size: 1rem;
     border-radius: 10px;
     transition: all 0.3s ease;
+    position: relative;
+    z-index: 20;
+    pointer-events: auto;
 }
 
 .team-line:hover {

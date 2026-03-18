@@ -305,8 +305,8 @@ function renderBracketWaterfall(data) {
 
     container.appendChild(regionsColumn);
 
-    // Integrate Finale into the vertical column
-    renderFinalFourBlock(data.final_four, data.championship, regionsColumn);
+    // Put Finale globally next to regions column for center alignment
+    renderFinalFourBlock(data.final_four, data.championship, container);
     
     if (appState.filter.region !== 'all') {
         zoomToRound('all'); // Default to full overview
@@ -378,7 +378,8 @@ function createTeamLine(region, round, teamName, seed, isWinner, prob) {
     `;
 
     if (team !== "TBD") {
-        line.onclick = (e) => {
+        line.style.cursor = 'pointer';
+        line.addEventListener('click', (e) => {
             if (e.target.classList.contains('lock-icon')) {
                 toggleLock(region, round, team);
             } else {
@@ -393,7 +394,7 @@ function createTeamLine(region, round, teamName, seed, isWinner, prob) {
                 }
                 openMatchupModal(team, opponent);
             }
-        };
+        });
     }
     return line;
 }
@@ -424,7 +425,7 @@ window.zoomToRound = function(round) {
     });
 
     if (round === 'all') {
-        scale = 0.25;
+        scale = 0.45; // Increased from 0.25 so names are legible
         translateX = 0;
         translateY = 0;
     } else {
