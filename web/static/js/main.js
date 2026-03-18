@@ -42,13 +42,12 @@ function resetToOptimal() {
         'weight-momentum': weights.momentum,
         'weight-ft': weights.ft,
         'weight-def-premium': weights.def_premium,
-        'weight-intuition-factor': weights.intuition_factor_weight,
-        'weight-composure-index-weight': weights.composure_index_weight,
-        'weight-upset-delta-weight': weights.upset_delta_weight
+        'weight-intuition-factor': 0,
+        'weight-composure-index-weight': 0,
+        'weight-upset-delta-weight': 0
     };
 
     for (const [id, val] of Object.entries(mapping)) {
-        if (val === undefined) continue;
         const slider = document.getElementById(id);
         const statName = id.replace('weight-', '');
         const numInput = document.getElementById('num-' + statName);
@@ -75,41 +74,38 @@ function applyWeights(weights) {
         'weight-sos': weights.sos,
         'weight-trb': weights.trb,
         'weight-momentum': weights.momentum,
+        'weight-def-premium': weights.def_premium,
         'weight-intuition-factor': weights.intuition_factor_weight,
         'weight-composure-index-weight': weights.composure_index_weight,
         'weight-upset-delta-weight': weights.upset_delta_weight
     };
 
     for (const [id, val] of Object.entries(mapping)) {
-        if (val === undefined) continue;
         const slider = document.getElementById(id);
         const statName = id.replace('weight-', '');
         const numInput = document.getElementById('num-' + statName);
         const valLabel = document.getElementById('val-' + statName);
 
-        if (slider) {
-            slider.value = val;
-            slider.dispatchEvent(new Event('input'));
+        // Even if val is undefined, we might want to reset to 0 in non-custom mode
+        const finalVal = val !== undefined ? val : (appState.mode !== 'custom' ? 0 : null);
+        
+        if (finalVal !== null && slider) {
+            slider.value = finalVal;
+            if (numInput) numInput.value = finalVal;
+            if (valLabel) valLabel.textContent = finalVal;
         }
-        if (numInput) numInput.value = val;
-        if (valLabel) valLabel.textContent = val;
-    }
-
-    // Zero out chaos if not in custom mode
-    if (appState.mode !== 'custom') {
-        const chaos = ['volatility', 'intuition-factor', 'composure-index-weight', 'upset-delta-weight'];
-        chaos.forEach(c => {
-            if (weights[c] === undefined) {
-                const s = document.getElementById(`weight-${c}`);
-                if (s) {
-                    s.value = 0;
-                    s.dispatchEvent(new Event('input'));
-                }
-            }
-        });
     }
 
     runSimulation();
+}
+
+function switchToCustom() {
+    if (appState.mode !== 'custom') {
+        appState.mode = 'custom';
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-mode') === 'custom');
+        });
+    }
 }
 
 function toggleLock(region, round, teamName) {
@@ -407,7 +403,7 @@ function zoomToRegion(region, forceCenter = true) {
         case 'South': scale = 1.3; tx = 38; ty = -25; break;
         case 'Midwest': scale = 1.3; tx = -38; ty = -25; break;
         case 'final-four': scale = 2.0; tx = 0; ty = 0; break;
-        default: scale = 0.35; tx = 0; ty = 0; 
+        default: scale = 0.5; tx = 0; ty = 0; 
     }
 
     container.style.transform = `scale(${scale}) translate(${tx}%, ${ty}%)`;
@@ -451,6 +447,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             appState.mode = btn.getAttribute('data-mode');
+            
+            if (appState.mode === 'custom') {
+                const panel = document.getElementById('settings-panel');
+                if (panel) panel.classList.add('active');
+            }
+            
             if (appState.mode === 'average') resetToOptimal();
             else if (appState.mode === 'perfect') applyWeights(appState.perfectWeights);
             else runSimulation();
@@ -473,6 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
         volSlider.addEventListener('input', (e) => {
             appState.volatility = parseInt(e.target.value);
             if (volVal) volVal.textContent = e.target.value;
+            switchToCustom();
             debounceSim();
         });
     }
@@ -484,6 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (numInput) numInput.value = e.target.value;
             const label = document.getElementById(`val-${id}`);
             if (label) label.textContent = e.target.value;
+            switchToCustom();
             debounceSim();
         });
     });
