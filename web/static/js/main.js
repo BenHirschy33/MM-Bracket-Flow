@@ -242,7 +242,10 @@ function renderBracketWaterfall(data) {
     if (!container) return;
     container.innerHTML = '';
     
-    const regionsOrder = ['East', 'West', 'South', 'Midwest'];
+    const regionsOrder = ['East', 'South', 'West', 'Midwest'];
+    
+    const regionsColumn = document.createElement('div');
+    regionsColumn.className = 'regions-column';
     
     regionsOrder.forEach(regionName => {
         const rounds = data.regions[regionName];
@@ -262,12 +265,7 @@ function renderBracketWaterfall(data) {
             const roundDiv = document.createElement('div');
             roundDiv.className = `round-column round-${r.round}`;
             
-            const isReverse = (regionName === 'West' || regionName === 'Midwest');
-            if (isReverse) {
-                roundDiv.style.gridColumn = 3 - r.round;
-            } else {
-                roundDiv.style.gridColumn = r.round;
-            }
+            roundDiv.style.gridColumn = r.round;
             
             const span = Math.pow(2, r.round);
             
@@ -291,13 +289,15 @@ function renderBracketWaterfall(data) {
         
         displayArea.appendChild(roundsContainer);
         regionBlock.appendChild(displayArea);
-        container.appendChild(regionBlock);
+        regionsColumn.appendChild(regionBlock);
     });
+
+    container.appendChild(regionsColumn);
 
     renderFinalFourBlock(data.final_four, data.championship, container);
     
     if (appState.filter.region !== 'all') {
-        zoomToRegion(appState.filter.region, false); // Don't snap scroll on re-render
+        zoomToRound('all'); // Default to full overview
     }
 }
 
@@ -307,7 +307,6 @@ function renderFinalFourBlock(ff, champ, container) {
     
     const title = document.createElement('div');
     title.className = 'region-grid-title';
-    title.style.gridColumn = '1 / 4';
     title.textContent = 'National Championship';
     ffBlock.appendChild(title);
     
@@ -389,33 +388,52 @@ function createTeamLine(region, round, teamName, seed, isWinner, prob) {
 
 // --- Navigation & UX ---
 
-function zoomToRegion(region, forceCenter = true) {
+window.zoomToRound = function(round) {
     const container = document.getElementById('bracket-container');
-    const stage = document.querySelector('.bracket-stage');
-    if (!container || !stage) return;
-    
-    let scale = 1;
-    let tx = 0, ty = 0;
+    if (!container) return;
 
-    switch(region) {
-        case 'East': scale = 1.3; tx = 38; ty = 25; break;
-        case 'West': scale = 1.3; tx = -38; ty = 25; break;
-        case 'South': scale = 1.3; tx = 38; ty = -25; break;
-        case 'Midwest': scale = 1.3; tx = -38; ty = -25; break;
-        case 'final-four': scale = 2.0; tx = 0; ty = 0; break;
-        default: scale = 0.5; tx = 0; ty = 0; 
+    let scale = 1.0;
+    let translateX = 0;
+    let translateY = 0;
+
+    // Remove active class from all round buttons
+    document.querySelectorAll('.round-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Find the clicked button and add active class
+    const buttons = document.querySelectorAll('.round-btn');
+    buttons.forEach(btn => {
+        if (round === 'all' && btn.textContent.includes('Overview')) btn.classList.add('active');
+        if (round === 64 && btn.textContent.includes('64')) btn.classList.add('active');
+        if (round === 32 && btn.textContent.includes('32')) btn.classList.add('active');
+        if (round === 16 && btn.textContent.includes('16')) btn.classList.add('active');
+        if (round === 8) btn.classList.add('active');
+        if (round === 4) btn.classList.add('active');
+        if (round === 2 && btn.textContent.includes('Champ')) btn.classList.add('active');
+    });
+
+    if (round === 'all') {
+        scale = 0.25;
+        translateX = 0;
+        translateY = 0;
+    } else {
+        scale = 1.0;
+        // Each round column is 224px + 32px gap = 256px
+        if (round === 64) translateX = 0;
+        if (round === 32) translateX = -256;
+        if (round === 16) translateX = -512;
+        if (round === 8) translateX = -768;
+        if (round === 4) translateX = -1000; // Final Four focus
+        if (round === 2) translateX = -1150; // Championship focus
+        
+        translateY = 0; // Default to top of stack
     }
 
-    container.style.transform = `scale(${scale}) translate(${tx}%, ${ty}%)`;
+    container.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
     
-    if (forceCenter) {
-        setTimeout(() => {
-            stage.scrollTo({ 
-                top: stage.scrollHeight / 2 - stage.clientHeight / 2, 
-                left: stage.scrollWidth / 2 - stage.clientWidth / 2, 
-                behavior: 'smooth' 
-            });
-        }, 100);
+    // Auto-scroll the viewport to the top of the container
+    const viewport = document.querySelector('.full-viewport');
+    if (viewport) {
+        viewport.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
@@ -443,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.onclick = () => {
+        btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             appState.mode = btn.getAttribute('data-mode');
@@ -451,22 +469,29 @@ document.addEventListener('DOMContentLoaded', () => {
             if (appState.mode === 'custom') {
                 const panel = document.getElementById('settings-panel');
                 if (panel) panel.classList.add('active');
+            } else {
+                // Close any open settings modals when switching to non-custom modes
+                document.querySelectorAll('.settings-modal').forEach(panel => {
+                    panel.classList.remove('active');
+                });
             }
             
             if (appState.mode === 'average') resetToOptimal();
             else if (appState.mode === 'perfect') applyWeights(appState.perfectWeights);
             else runSimulation();
-        };
+        });
     });
 
     document.querySelectorAll('.region-btn').forEach(btn => {
-        btn.onclick = () => {
+        btn.addEventListener('click', () => {
             const region = btn.getAttribute('data-region');
             document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             appState.filter.region = region;
-            zoomToRegion(region);
-        };
+            // zoomToRegion is deprecated, we focus on rounds now.
+            // If the user wants to see a region, we'll just snap to Round 64.
+            window.zoomToRound(64); 
+        });
     });
 
     const volSlider = document.getElementById('weight-volatility');
@@ -477,6 +502,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (volVal) volVal.textContent = e.target.value;
             switchToCustom();
             debounceSim();
+        });
+    }
+
+    const bracketContainer = document.getElementById('bracket-container');
+    if (bracketContainer) {
+        bracketContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('.matchup-card');
+            if (card && !card.classList.contains('ff-matchup') && !card.classList.contains('champ-matchup')) {
+                // For now, just a placeholder for matchup intelligence
+                document.getElementById('matchup-modal').classList.add('active');
+            }
+        });
+    }
+
+    const closeModal = document.getElementById('close-modal');
+    if (closeModal) {
+        closeModal.addEventListener('click', () => {
+            document.getElementById('matchup-modal').classList.remove('active');
         });
     }
 

@@ -33,15 +33,6 @@
                     <button class="tab-btn" data-mode="average">Highest Average</button>
                     <button class="tab-btn" data-mode="perfect">Perfect Bracket</button>
                 </div>
-                <div class="divider"></div>
-                <div class="region-nav">
-                    <button class="region-btn active" data-region="all">All</button>
-                    <button class="region-btn" data-region="East">East</button>
-                    <button class="region-btn" data-region="West">West</button>
-                    <button class="region-btn" data-region="South">South</button>
-                    <button class="region-btn" data-region="Midwest">Midwest</button>
-                    <button class="region-btn" data-region="final-four">F4</button>
-                </div>
             </div>
             <div class="action-group">
                 <button id="settings-toggle-btn" class="premium-btn secondary">⚙️ Simulation Settings</button>
@@ -51,6 +42,21 @@
     </header>
 
     <main>
+        <section class="bracket-toolbar glass-card sticky-toolbar">
+            <div class="round-nav-container">
+                <span class="nav-label">Round Focus:</span>
+                <div class="round-filters">
+                    <button class="round-btn active" onclick="zoomToRound('all')">Standard Overview</button>
+                    <button class="round-btn" onclick="zoomToRound(64)">Round of 64</button>
+                    <button class="round-btn" onclick="zoomToRound(32)">Round of 32</button>
+                    <button class="round-btn" onclick="zoomToRound(16)">Sweet 16</button>
+                    <button class="round-btn" onclick="zoomToRound(8)">Elite 8</button>
+                    <button class="round-btn" onclick="zoomToRound(4)">Final Four</button>
+                    <button class="round-btn" onclick="zoomToRound(2)">Championship</button>
+                </div>
+            </div>
+        </section>
+
         <!-- Floating Settings Panel -->
         <div id="settings-panel" class="settings-modal">
             <div class="settings-content glass">
