@@ -163,6 +163,17 @@ def simulate_matchup():
         custom_weights = extract_weights(weights_data)
         engine = SimulatorEngine(teams=teams, weights=custom_weights)
         prob_a = engine.calculate_win_probability(team_a, team_b)
+            
+        # Debug UCLA/UCF specifically
+        if (team_a.name == "UCLA" and team_b.name == "UCF") or (team_b.name == "UCLA" and team_a.name == "UCF"):
+            import logging
+            logging.info(f"MATCHUP DEBUG: {team_a.name} ({team_a.seed}) vs {team_b.name} ({team_b.seed})")
+            # Pythagorean expectation is not a direct attribute, calculate or use efficiency
+            # For now, using off_efficiency and def_efficiency as proxies for "Eff"
+            logging.info(f"  Off Eff A: {team_a.off_efficiency:.4f}, Def Eff A: {team_a.def_efficiency:.4f}")
+            logging.info(f"  Off Eff B: {team_b.off_efficiency:.4f}, Def Eff B: {team_b.def_efficiency:.4f}")
+            logging.info(f"  SOS A: {team_a.sos}, SOS B: {team_b.sos}")
+            logging.info(f"  Result Prob A: {prob_a:.4f}")
         winner = team_a if prob_a >= 0.5 else team_b
         
         return jsonify({
@@ -354,15 +365,20 @@ def run_full_sim():
             "winner": None
         }
         
-        final_four_field = []
+        # Collect regional winners by name for explicit pairing
+        winners_by_region = {}
+        regions_ordered = ['East', 'South', 'West', 'Midwest'] # Match main.js order
         
-        for region_name, seeds_map in bracket_data.get("regions", {}).items():
+        for region_name in regions_ordered:
+            if region_name not in bracket_data.get("regions", {}):
+                continue
+            
+            seeds_map = bracket_data["regions"][region_name]
             region_trace = []
             current_round_teams = []
             
             # Round 1 Setup
             for high_seed, low_seed in SEED_MATCHUPS:
-                # Try direct seed, then 'a' suffix, then 'b' suffix (Play-ins)
                 def get_team_from_seed(seed_str):
                     if seed_str in seeds_map: return seeds_map[seed_str]
                     if f"{seed_str}a" in seeds_map: return seeds_map[f"{seed_str}a"]
@@ -377,18 +393,13 @@ def run_full_sim():
                 
                 if not ht:
                     ht = Team(name=ht_name or f"TBD ({high_seed})", seed=int(high_seed), off_efficiency=100.0, def_efficiency=100.0, off_ppg=70.0, def_ppg=70.0)
-                else:
-                    ht.seed = int(high_seed)
+                else: ht.seed = int(high_seed)
                 
                 if not lt:
                     lt = Team(name=lt_name or f"TBD ({low_seed})", seed=int(low_seed), off_efficiency=100.0, def_efficiency=100.0, off_ppg=70.0, def_ppg=70.0)
-                else:
-                    lt.seed = int(low_seed)
+                else: lt.seed = int(low_seed)
 
                 current_round_teams.extend([ht, lt])
-            
-            if not current_round_teams:
-                continue
 
             round_names = {1: "round_of_32", 2: "sweet_sixteen", 3: "elite_eight", 4: "final_four"}
             round_idx = 1
@@ -396,8 +407,6 @@ def run_full_sim():
                 next_round = []
                 matchups = []
                 region_locks = locks.get('regions', {}).get(region_name, {}).get(str(round_idx), {})
-                
-                # Check historical results for this round
                 historical_winners = actual_results.get(round_names.get(round_idx, ""), [])
 
                 for i in range(0, len(current_round_teams) - 1, 2):
@@ -405,66 +414,67 @@ def run_full_sim():
                     t_b = current_round_teams[i+1]
                     prob_a = engine.calculate_win_probability(t_a, t_b)
                     
-                    # Priority: 1. Actual Historical Result, 2. UI Lock, 3. Simulation
-                    if t_a.name in historical_winners:
-                        winner = t_a
-                    elif t_b.name in historical_winners:
-                        winner = t_b
-                    elif t_a.name in region_locks:
-                        winner = t_a
-                    elif t_b.name in region_locks:
-                        winner = t_b
-                    else:
-                        winner = engine.simulate_game(t_a, t_b, mode=mode)
+                    # LOGGING ANOMALY DEBUG
+                    if (t_a.name == "UCLA" and t_b.name == "UCF") or (t_b.name == "UCLA" and t_a.name == "UCF"):
+                        import logging
+                        logging.info(f"MATCHUP DEBUG: {t_a.name} ({t_a.seed}) vs {t_b.name} ({t_b.seed})")
+                        logging.info(f"  Eff A: {t_a.pythagorean_expectation:.4f}, Eff B: {t_b.pythagorean_expectation:.4f}")
+                        logging.info(f"  SOS A: {t_a.sos}, SOS B: {t_b.sos}")
+                        logging.info(f"  TO A: {t_a.off_to_pct}, TO B: {t_b.off_to_pct}")
+                        logging.info(f"  Result Prob A: {prob_a:.4f}")
+                    
+                    if t_a.name in historical_winners: winner = t_a
+                    elif t_b.name in historical_winners: winner = t_b
+                    elif t_a.name in region_locks: winner = t_a
+                    elif t_b.name in region_locks: winner = t_b
+                    else: winner = engine.simulate_game(t_a, t_b, mode=mode)
                         
                     next_round.append(winner)
-                    
-                    matchups.append({
-                        "team_a": t_a.name, "seed_a": t_a.seed,
-                        "team_b": t_b.name, "seed_b": t_b.seed,
-                        "winner": winner.name,
-                        "probability": prob_a
-                    })
+                    matchups.append({"team_a": t_a.name, "seed_a": t_a.seed, "team_b": t_b.name, "seed_b": t_b.seed, "winner": winner.name, "probability": prob_a})
                 
-                # If odd team remains, they get a bye
-                if len(current_round_teams) % 2 != 0:
-                    next_round.append(current_round_teams[-1])
-
                 region_trace.append({"round": round_idx, "matchups": matchups})
                 current_round_teams = next_round
                 round_idx += 1
                 
             sim_trace["regions"][region_name] = region_trace
-            if current_round_teams:
-                final_four_field.append(current_round_teams[0])
-                
-        # Final Four
-        if len(final_four_field) < 4:
-            # Pad with empty teams if regions failed
-            while len(final_four_field) < 4:
-                final_four_field.append(list(teams_data.values())[0])
+            winners_by_region[region_name] = current_round_teams[0] if current_round_teams else None
+
+        # Final Four (Explicit Pairings)
+        # Semi 1: East vs South
+        e_win = winners_by_region.get('East')
+        s_win = winners_by_region.get('South')
+        # Semi 2: West vs Midwest
+        w_win = winners_by_region.get('West')
+        m_win = winners_by_region.get('Midwest')
+        
+        # Fallback for missing regions
+        dummy_team = list(teams_data.values())[0]
+        e_win = e_win or dummy_team
+        s_win = s_win or dummy_team
+        w_win = w_win or dummy_team
+        m_win = m_win or dummy_team
 
         ff_winners = actual_results.get("final_four", [])
         champ_winner = actual_results.get("champion")
-
-        # Semi 1
         ff_locks = locks.get('final_four', {})
-        if final_four_field[0].name in ff_winners: ff_1 = final_four_field[0]
-        elif final_four_field[1].name in ff_winners: ff_1 = final_four_field[1]
-        elif final_four_field[0].name in ff_locks: ff_1 = final_four_field[0]
-        elif final_four_field[1].name in ff_locks: ff_1 = final_four_field[1]
-        else: ff_1 = engine.simulate_game(final_four_field[0], final_four_field[1], mode=mode)
-            
-        # Semi 2
-        if final_four_field[2].name in ff_winners: ff_2 = final_four_field[2]
-        elif final_four_field[3].name in ff_winners: ff_2 = final_four_field[3]
-        elif final_four_field[2].name in ff_locks: ff_2 = final_four_field[2]
-        elif final_four_field[3].name in ff_locks: ff_2 = final_four_field[3]
-        else: ff_2 = engine.simulate_game(final_four_field[2], final_four_field[3], mode=mode)
+
+        # Semi 1 Simulation
+        if e_win.name in ff_winners: ff_1 = e_win
+        elif s_win.name in ff_winners: ff_1 = s_win
+        elif e_win.name in ff_locks: ff_1 = e_win
+        elif s_win.name in ff_locks: ff_1 = s_win
+        else: ff_1 = engine.simulate_game(e_win, s_win, mode=mode)
+
+        # Semi 2 Simulation
+        if w_win.name in ff_winners: ff_2 = w_win
+        elif m_win.name in ff_winners: ff_2 = m_win
+        elif w_win.name in ff_locks: ff_2 = w_win
+        elif m_win.name in ff_locks: ff_2 = m_win
+        else: ff_2 = engine.simulate_game(w_win, m_win, mode=mode)
         
         sim_trace["final_four"] = [
-            {"team_a": final_four_field[0].name, "seed_a": final_four_field[0].seed, "team_b": final_four_field[1].name, "seed_b": final_four_field[1].seed, "winner": ff_1.name},
-            {"team_a": final_four_field[2].name, "seed_a": final_four_field[2].seed, "team_b": final_four_field[3].name, "seed_b": final_four_field[3].seed, "winner": ff_2.name}
+            {"team_a": e_win.name, "seed_a": e_win.seed, "team_b": s_win.name, "seed_b": s_win.seed, "winner": ff_1.name},
+            {"team_a": w_win.name, "seed_a": w_win.seed, "team_b": m_win.name, "seed_b": m_win.seed, "winner": ff_2.name}
         ]
         
         # Championship

@@ -35,6 +35,8 @@
                 </div>
             </div>
             <div class="action-group">
+                <button id="overview-btn" class="premium-btn secondary" onclick="zoomToRound('all')">Standard Overview</button>
+                <button id="reset-sim-btn" class="premium-btn secondary" onclick="resetSimulation()">Reset Simulation</button>
                 <button id="settings-toggle-btn" class="premium-btn secondary">⚙️ Simulation Settings</button>
                 <button id="run-sim-btn" class="premium-btn primary">Run Simulation</button>
             </div>
@@ -42,20 +44,6 @@
     </header>
 
     <main>
-        <section class="bracket-toolbar glass-card sticky-toolbar">
-            <div class="round-nav-container">
-                <span class="nav-label">Round Focus:</span>
-                <div class="round-filters">
-                    <button class="round-btn active" onclick="zoomToRound('all')">Standard Overview</button>
-                    <button class="round-btn" onclick="zoomToRound(64)">Round of 64</button>
-                    <button class="round-btn" onclick="zoomToRound(32)">Round of 32</button>
-                    <button class="round-btn" onclick="zoomToRound(16)">Sweet 16</button>
-                    <button class="round-btn" onclick="zoomToRound(8)">Elite 8</button>
-                    <button class="round-btn" onclick="zoomToRound(4)">Final Four</button>
-                    <button class="round-btn" onclick="zoomToRound(2)">Championship</button>
-                </div>
-            </div>
-        </section>
 
         <!-- Floating Settings Panel -->
         <div id="settings-panel" class="settings-modal">
@@ -189,9 +177,11 @@
         </div>
 
         <section id="bracket-visualization" class="glass-card full-viewport">
-            <div id="bracket-container" class="bracket-stage espn-layout">
-                <div class="empty-state">
-                    <p>Initialize the 2026 bracket flow to begin simulation.</p>
+            <div id="zoom-container" class="zoom-container">
+                <div id="bracket-container" class="bracket-stage espn-layout">
+                    <div class="empty-state">
+                        <p>Initialize the 2026 bracket flow to begin simulation.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -220,21 +210,22 @@
                 </div>
             </div>
 
-            <div class="modal-body">
-                <section class="analysis-section">
-                    <h3>The "Why" Analysis</h3>
-                    <div class="why-list" id="why-list">
-                        <!-- Dynamic explanations go here -->
+            <div class="modal-analysis-grid">
+                <div class="analysis-section why-analysis">
+                    <h3><i class="fas fa-brain"></i> Why Analysis</h3>
+                    <div id="modal-why-content" class="analysis-text">
+                        Loading intelligence data...
                     </div>
-                </section>
+                </div>
                 
-                <section class="comparison-charts">
-                    <h3>Metric Comparison</h3>
-                    <div id="comparison-bars">
-                        <!-- Comparative Bar Charts -->
+                <div class="analysis-section metrics-comparison">
+                    <h3><i class="fas fa-chart-bar"></i> Metric Comparison</h3>
+                    <div class="metrics-table" id="modal-metrics-table">
+                        <!-- Table populated by JS -->
                     </div>
-                </section>
+                </div>
             </div>
+
         </div>
     </div>
 

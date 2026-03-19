@@ -99,7 +99,7 @@ class SimulatorEngine:
         luck_a = self._get_metric(team_a, 'luck', 0.0)
         luck_b = self._get_metric(team_b, 'luck', 0.0)
         final_probability += (luck_b - luck_a) * self.weights.luck_weight
-
+        
         mom_a = self._get_metric(team_a, 'momentum', 0.5)
         mom_b = self._get_metric(team_b, 'momentum', 0.5)
         if mom_a > 0.9: final_probability -= (mom_a - 0.9) * self.weights.momentum_regression_weight

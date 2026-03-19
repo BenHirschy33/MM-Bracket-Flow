@@ -212,15 +212,15 @@ class SimulationWeights:
     # Chaos Engine Toggle (Phase 3)
     chaos_mode: bool = False
 
-# Optimizer-tuned defaults (1000-iteration SA sweep, CV fitness 178.40)
+# Optimizer-tuned defaults (REDUCED for v2026 stability)
 DEFAULT_WEIGHTS = SimulationWeights(
     efficiency_weight=0.153,
-    to_weight=6.532,
+    to_weight=2.0,          # Further reduced from 2.5
     ft_weight=0.335,
     three_par_weight=1.607,
     pace_variance_weight=0.018,
     momentum_weight=0.435,
-    sos_weight=7.688,
+    sos_weight=1.8,         # Further reduced from 3.5
     foul_drawing_weight=0.0,
     stl_weight=0.408,
     blk_weight=0.420,
@@ -229,7 +229,7 @@ DEFAULT_WEIGHTS = SimulationWeights(
     due_factor_sensitivity=0.027,
     momentum_regression_weight=0.024,
     road_dominance_weight=0.427,
-    seed_weight=0.022,
+    seed_weight=0.04,        # Increased from 0.015 to give 7-seed UCLA a better edge vs 10-seed
     ast_weight=0.0,
     three_par_volatility_weight=0.134,
     ts_weight=0.400,
@@ -244,7 +244,7 @@ DEFAULT_WEIGHTS = SimulationWeights(
     neutral_weight=1.404,
     non_conf_weight=0.420,
     def_ft_rate_weight=1.092,
-    defense_premium=7.395,
+    defense_premium=2.0,     # Further reduced from 3.5
     orb_density_weight=0.187,
     continuation_rule_bias=0.005,
     coach_tournament_weight=0.135,

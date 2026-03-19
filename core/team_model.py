@@ -89,7 +89,7 @@ class Team:
         
         # Factor in true road dominance: if a team is great away, they likely handle neutral better
         road_perf = self.road_dominance # (Win% Away - Win% Home)
-        return (self.neutral_w / total) + (road_perf * 0.1) # Subtle adjustment
+        return max(0.0, (self.neutral_w / total) + (road_perf * 0.1)) # Subtle adjustment
 
     @property
     def non_conf_win_pct(self) -> float:

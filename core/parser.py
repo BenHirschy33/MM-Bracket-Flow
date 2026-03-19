@@ -149,28 +149,33 @@ def load_teams(csv_filepath: str | Path, year: int = None) -> Dict[str, Team]:
                 if matched_team:
                     # Metrics (approximate indices based on previous audit)
                     # Pace is around 21, ORtg 22, FTr 23, etc.
-                    # But let's stick to the safety of field names where possible or just indices for the repeating W/L
                     try:
                         total_w = int(row[3]) if row[3] else 0
                         total_l = int(row[4]) if row[4] else 0
                         matched_team.total_games = int(row[2]) if row[2] else 0
                         
-                        # Phase 5+: Provenance Metrics (RESTORED)
-                        matched_team.conf_w = int(row[9]) if row[9] else 0
-                        matched_team.conf_l = int(row[10]) if row[10] else 0
-                        matched_team.home_w = int(row[12]) if row[12] else 0
-                        matched_team.home_l = int(row[13]) if row[13] else 0
-                        matched_team.away_w = int(row[15]) if row[15] else 0
-                        matched_team.away_l = int(row[16]) if row[16] else 0
-                        
-                        # Derived Neutral Site Stats (Phase 5)
-                        total_w = int(row[3]) if row[3] else 0
-                        total_l = int(row[4]) if row[4] else 0
-                        matched_team.neutral_w = max(0, total_w - matched_team.home_w - matched_team.away_w)
-                        matched_team.neutral_l = max(0, total_l - matched_team.home_l - matched_team.away_l)
+                        # Phase 5+: Provenance                        # Based on header: Rk:0, School:1, G:2, W:3, L:4, W-L%:5, SRS:6, SOS:7, Sep:8, HW:9, HL:10, Sep:11, AW:12, AL:13, Sep:14, NW:15, NL:16
+                        try:
+                            # Record components
+                            matched_team.home_w = int(row[9])
+                            matched_team.home_l = int(row[10])
+                            matched_team.away_w = int(row[12])
+                            matched_team.away_l = int(row[13])
+                            matched_team.neutral_w = int(row[15])
+                            matched_team.neutral_l = int(row[16])
+                            
+                            # Advanced stats: Pace:20, ORtg:21 (Wait, let's verify)
+                            # Actually from head: Separator at 20. Pace is 21. ORtg is 22.
+                            pace = safe_float(row[21]) or 70.0
+                            matched_team.pace = pace
+                        except (ValueError, IndexError) as e:
+                            logging.warning(f"Error parsing record components for {school}: {e}")
+                            # Fallback to derived neutral stats if direct parsing fails
+                            matched_team.neutral_w = max(0, total_w - matched_team.home_w - matched_team.away_w)
+                            matched_team.neutral_l = max(0, total_l - matched_team.home_l - matched_team.away_l)
 
                         # Phase 5+: Derived Efficiency Baseline
-                        pace = matched_team.pace if (matched_team.pace and matched_team.pace > 0) else 70.0
+                        # pace = matched_team.pace if (matched_team.pace and matched_team.pace > 0) else 70.0 # Now set above
                         total_games = matched_team.total_games if matched_team.total_games else 30
                         
                         # Derive Efficiency (AdjO/AdjD)

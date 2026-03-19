@@ -123,58 +123,76 @@
     font-size: 1rem;
 }
 
-/* Round-Centric Navigation */
-.sticky-toolbar {
-    position: sticky;
-    top: 70px; /* Tighter against nav */
-    z-index: 100;
-    margin: 0.5rem 2rem;
-    padding: 0.75rem 1.5rem;
-    display: flex;
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(20px);
+    z-index: 3000;
+    display: none;
+    align-items: center;
     justify-content: center;
-    background: var(--glass-bg);
-    backdrop-filter: blur(30px);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
 
-.round-nav-container {
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content.glass {
+    width: 900px;
+    max-width: 95vw;
+    background: rgba(15, 20, 30, 0.95);
+    border: 1px solid var(--glass-border);
+    border-radius: 30px;
+    padding: 3rem;
+    position: relative;
+    box-shadow: 0 50px 100px rgba(0,0,0,0.8);
+}
+
+.modal-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.analysis-section h3 {
+    color: var(--accent-gold);
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-}
-
-.nav-label {
-    font-size: 0.8rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--accent-gold);
-}
-
-.round-filters {
-    display: flex;
     gap: 0.5rem;
 }
 
-.round-btn {
-    padding: 0.6rem 1.2rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--glass-border);
-    border-radius: 8px;
+.analysis-text {
     color: var(--text-secondary);
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
 }
 
-.round-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
-    border-color: var(--accent-gold);
+.metrics-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
+
+.metric-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 80px;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.metric-name { color: var(--text-secondary); }
+.metric-val { text-align: right; font-weight: 700; color: var(--text-primary); }
+/* Round-Centric Navigation */
 
 .round-btn.active {
     background: var(--accent-gold);
@@ -185,62 +203,60 @@
 
 .full-viewport {
     width: 100%;
-    overflow: auto; /* Allow both X and Y scrolling */
+    overflow: hidden; /* We will handle scrolling via JS pan now */
     padding: 0;
-    margin-top: 1rem; /* Tighter */
+    margin-top: 0.5rem; 
     position: relative;
     border: 1px solid var(--glass-border);
     border-radius: 24px;
     background: rgba(0, 0, 0, 0.2);
-    height: calc(100vh - 150px); /* Reclaim space */
+    height: calc(100vh - 120px); 
+    cursor: grab;
+    user-select: none;
+}
+
+.full-viewport.grabbing {
+    cursor: grabbing;
 }
 
 .bracket-stage {
-    display: flex;
-    flex-direction: row;
-    align-items: center; /* Centers Finale vertically relative to the entire 4-region column */
-    gap: 6rem; /* Restored more reasonable gap since Finale is its own column */
-    padding: 2rem 4rem;
+    display: grid;
+    grid-template-columns: repeat(7, 280px);
+    grid-template-rows: repeat(64, 60px); 
+    gap: 0;
+    padding: 1rem 4rem;
     min-width: max-content;
-    transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-    transform-origin: top left;
+    transform-origin: 0 0; /* Critical for scroll alignment */
+    transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
     background: none;
     border: none;
 }
 
-.regions-column {
-    display: flex;
-    flex-direction: column;
-    gap: 6rem;
-}
-
-.region-block {
-    display: block !important;
-    padding: 0 !important;
-    background: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    width: max-content;
+/* Legacy regional blocks are removed in favor of a unified tournament grid */
+.region-label-v2 {
+    position: absolute;
+    left: 2rem;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    opacity: 0.6;
+    pointer-events: none;
 }
 
 /* Regional positioning is now handled by flex column order */
 
-.rounds-flex {
-    display: flex;
-    flex-direction: row; /* All regions go left-to-right now */
-    align-items: flex-start;
-    gap: 2.5rem; /* Slightly more gap for column separation */
-    width: max-content;
-    height: 832px; /* 16 rows * 52px per region */
-}
-
 .round-column {
     display: grid;
-    grid-template-rows: repeat(16, 52px); /* 16 mathematical rows per region */
-    width: 15rem; /* Slightly wider */
+    grid-template-rows: repeat(64, 60px); /* Consistent 60px rows */
+    width: 240px;
     height: 100%;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     position: relative;
+    pointer-events: none; /* Clicks pass to cards */
+}
+
+/* Ensure cards in the grid have pointer events */
+.matchup-card {
+    pointer-events: auto;
 }
 
 .round-column:nth-child(even) {
@@ -248,17 +264,23 @@
 }
 
 .final_four_block { 
-    align-self: center; /* Vertically centered */
+    align-self: center;
     margin-top: 0; 
     background: linear-gradient(180deg, rgba(255, 184, 0, 0.08), transparent);
     border-radius: 24px;
-    padding: 2rem;
+    padding: 3rem;
     border: 1px solid rgba(255, 184, 0, 0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2rem;
-    min-width: 500px;
+    gap: 2.5rem;
+}
+
+.ff-games-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12rem; /* Vertical gap between the two F4 games */
+    align-items: center;
 }
 
 .team-line.locked {
@@ -289,16 +311,59 @@
     position: relative;
     transition: all 0.3s ease;
     width: 100%;
-    height: 100px; /* Taller card */
+    height: 110px !important; /* Force uniform height across all rounds */
+    min-height: 110px !important;
+    max-height: 110px !important;
     align-self: center;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    box-sizing: border-box;
-    overflow: hidden;
-    gap: 6px;
     z-index: 10;
-    pointer-events: auto;
+}
+
+.matchup-card.hero-champ {
+    height: 180px;
+    border: 2px solid var(--accent-gold);
+    box-shadow: 0 0 30px var(--accent-gold-glow);
+    background: linear-gradient(135deg, rgba(255, 184, 0, 0.1), rgba(20, 25, 35, 0.9));
+}
+
+.matchup-card.hero-champ .team-line {
+    padding: 0.75rem;
+    font-size: 1.2rem;
+}
+
+/* Bracket Connectors */
+.round-1 .matchup-card::after,
+.round-2 .matchup-card::after,
+.round-3 .matchup-card::after,
+.round-4 .matchup-card::after,
+.round-5 .matchup-card::after {
+    content: '';
+    position: absolute;
+    right: -40px;
+    top: 50%;
+    width: 40px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.4); /* Brighter for visibility */
+    z-index: -1;
+}
+
+/* Elbows for Top/Bottom pairings */
+.matchup-card.m-top::after {
+    height: calc(var(--span-height) / 2); 
+    border-right: 2px solid rgba(255, 255, 255, 0.4);
+    border-top: 2px solid rgba(255, 255, 255, 0.4);
+    background: none;
+}
+
+.matchup-card.m-bottom::after {
+    height: calc(var(--span-height) / 2);
+    top: auto;
+    bottom: 50%;
+    border-right: 2px solid rgba(255, 255, 255, 0.4);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+    background: none;
 }
 
 .matchup-card:hover {
@@ -325,6 +390,46 @@
     right: auto;
 }
 
+.final_four_block { 
+    align-self: center;
+    margin-top: 0; 
+    background: linear-gradient(180deg, rgba(255, 184, 0, 0.08), transparent);
+    border-radius: 24px;
+    padding: 3rem;
+    border: 1px solid rgba(255, 184, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+.ff-games-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12rem; /* Vertical gap between the two F4 games */
+    align-items: center;
+}
+
+.team-line.locked {
+    background: linear-gradient(90deg, rgba(255, 184, 0, 0.2), transparent) !important;
+    border-left: 3px solid var(--accent-gold) !important;
+    box-shadow: 0 0 20px var(--accent-gold-glow) !important;
+    position: relative;
+    z-index: 5;
+}
+
+.team-line.locked .lock-icon {
+    color: var(--accent-gold);
+    opacity: 1;
+    text-shadow: 0 0 10px var(--accent-gold);
+}
+
+
+/* All Regions Flow Left-to-Right */
+.region-block .rounds-flex {
+    flex-direction: row !important;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -347,6 +452,27 @@ body {
     background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
     pointer-events: none;
     z-index: -1;
+}
+
+.full-viewport {
+    flex: 1;
+    overflow: auto; /* Force native scrollbars */
+    position: relative;
+    z-index: 1;
+    background: radial-gradient(circle at center, rgba(255, 184, 0, 0.01) 0%, transparent 70%);
+    scroll-behavior: smooth;
+    height: calc(100vh - 140px);
+    margin-top: 0.5rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+}
+
+.zoom-container {
+    position: relative;
+    width: min-content;
+    height: min-content;
+    padding: 0;
+    margin: 0;
 }
 
 .bg-mesh {
@@ -381,7 +507,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 2rem; /* Tighter header */
+    padding: 0.15rem 2rem; /* Maximum tightness */
     background: rgba(10, 12, 16, 0.85);
     backdrop-filter: blur(30px);
     border-bottom: 1px solid var(--glass-border);
@@ -390,8 +516,16 @@ body {
     z-index: 2000;
 }
 
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0; /* Critical for vertical density */
+}
+
 .glow-text {
-    font-size: 1.4rem; /* Smaller text to clear space */
+    font-size: 1.1rem;
     font-weight: 800;
     letter-spacing: 0.1em;
     background: linear-gradient(135deg, #ffffff, var(--accent-gold));
@@ -399,14 +533,14 @@ body {
     background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 0 12px var(--accent-gold-glow));
+    margin: 0;
 }
 
 .subtitle {
-    font-size: 0.8rem;
+    font-size: 0.65rem;
     color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    margin-top: 0.2rem;
+    opacity: 0.6;
+    margin-top: -2px;
 }
 
 .header-controls {

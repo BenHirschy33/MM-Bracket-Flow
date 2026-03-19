@@ -22,7 +22,15 @@ const appState = {
     },
     teams: {},
     currentData: null,
-    simTimer: null
+    simTimer: null,
+    zoom: {
+        scale: 0.45,
+        x: 0,
+        y: 0,
+        isPanning: false,
+        startX: 0,
+        startY: 0
+    }
 };
 
 // --- Core Logic ---
@@ -244,47 +252,50 @@ function renderBracketWaterfall(data) {
     
     const regionsOrder = ['East', 'South', 'West', 'Midwest'];
     
-    const regionsColumn = document.createElement('div');
-    regionsColumn.className = 'regions-column';
-    
-    regionsOrder.forEach(regionName => {
+    // Create 7 columns (R64, R32, S16, E8, F4, Champ, Winner)
+    const columns = [];
+    for (let i = 1; i <= 7; i++) {
+        const col = document.createElement('div');
+        col.className = `round-column round-${i}`;
+        col.style.gridColumn = i;
+        columns.push(col);
+        container.appendChild(col);
+    }
+
+    // Populate Regional Rounds (1-4)
+    regionsOrder.forEach((regionName, regIdx) => {
         const rounds = data.regions[regionName];
         if (!rounds) return;
 
-        const regionBlock = document.createElement('div');
-        regionBlock.className = 'region-block';
-        regionBlock.setAttribute('data-region', regionName);
-
-        // Add Regional Label
-        const label = document.createElement('h2');
+        const rowOffset = regIdx * 16;
+        
+        // Add absolute positioned regional labels
+        const label = document.createElement('div');
         label.className = 'region-label-v2';
-        label.style.color = 'var(--accent-gold)';
-        label.style.fontSize = '1.5rem';
-        label.style.fontWeight = '800';
-        label.style.margin = '2rem 0 1rem 4rem';
-        label.style.letterSpacing = '0.1em';
-        label.textContent = `${regionName.toUpperCase()} REGION`;
-        regionBlock.appendChild(label);
-        
-        const displayArea = document.createElement('div');
-        displayArea.className = 'region-display';
-        
-        const roundsContainer = document.createElement('div');
-        roundsContainer.className = 'rounds-flex';
-        
+        label.style.top = `${rowOffset * 60 + 20}px`; // Updated to 60px
+        label.textContent = regionName;
+        container.appendChild(label);
+
         rounds.forEach((r) => {
-            const roundDiv = document.createElement('div');
-            roundDiv.className = `round-column round-${r.round}`;
-            
-            roundDiv.style.gridColumn = r.round;
-            
+            const col = columns[r.round - 1]; // r.round is 1-4 here
             const span = Math.pow(2, r.round);
             
-            r.matchups.forEach((m, idx) => {
+            r.matchups.forEach((m, mIdx) => {
                 const mCard = document.createElement('div');
                 mCard.className = 'matchup-card';
-                const start = (idx * span) + 1;
+                
+                // No special class for R32
+
+                // Add top/bottom class for connectors
+                if (r.round < 5) {
+                    const isTop = (r.round === 4) ? (regIdx % 2 === 0) : (mIdx % 2 === 0);
+                    mCard.classList.add(isTop ? 'm-top' : 'm-bottom');
+                }
+                
+                const span = Math.pow(2, r.round);
+                const start = (mIdx * span) + rowOffset + 1;
                 mCard.style.gridRow = `${start} / span ${span}`;
+                mCard.style.setProperty('--span-height', `${span * 60}px`);
                 
                 const vol = appState.volatility / 100;
                 let probA = m.probability || 0.5;
@@ -293,73 +304,51 @@ function renderBracketWaterfall(data) {
                 mCard.appendChild(createTeamLine(regionName, r.round, m.team_a, m.seed_a, m.winner === m.team_a, (blendedA * 100).toFixed(0)));
                 mCard.appendChild(createTeamLine(regionName, r.round, m.team_b, m.seed_b, m.winner === m.team_b, ((1-blendedA) * 100).toFixed(0)));
                 
-                roundDiv.appendChild(mCard);
+                col.appendChild(mCard);
             });
-            roundsContainer.appendChild(roundDiv);
         });
-        
-        displayArea.appendChild(roundsContainer);
-        regionBlock.appendChild(displayArea);
-        regionsColumn.appendChild(regionBlock);
     });
 
-    container.appendChild(regionsColumn);
+    // Populate Final Four (Round 5)
+    if (data.final_four) {
+        const f4Col = columns[4];
+        data.final_four.forEach((m, idx) => {
+            const mCard = document.createElement('div');
+            mCard.className = `matchup-card ff-matchup ${idx === 0 ? 'm-top' : 'm-bottom'}`;
+            const start = (idx * 32) + 1;
+            mCard.style.gridRow = `${start} / span 32`;
+            mCard.style.setProperty('--span-height', `${32 * 60}px`);
+            
+            mCard.appendChild(createTeamLine('final_four', 1, m.team_a, m.seed_a, m.winner === m.team_a, ''));
+            mCard.appendChild(createTeamLine('final_four', 1, m.team_b, m.seed_b, m.winner === m.team_b, ''));
+            f4Col.appendChild(mCard);
+        });
+    }
 
-    // Put Finale globally next to regions column for center alignment
-    renderFinalFourBlock(data.final_four, data.championship, container);
+    // Populate Championship (Round 6)
+    if (data.championship) {
+        const champCol = columns[5];
+        const m = data.championship;
+        const mCard = document.createElement('div');
+        mCard.className = 'matchup-card champ-matchup hero-champ';
+        mCard.style.gridRow = `1 / span 64`;
+        mCard.style.border = '2px solid var(--accent-gold)';
+        
+        mCard.appendChild(createTeamLine('championship', 1, m.team_a, m.seed_a, m.winner === m.team_a, ''));
+        mCard.appendChild(createTeamLine('championship', 1, m.team_b, m.seed_b, m.winner === m.team_b, ''));
+        
+        if (m.winner) {
+            const trophy = document.createElement('div');
+            trophy.className = 'champ-winner-glow';
+            trophy.innerHTML = `🏆 ${m.winner} 🏆`;
+            mCard.appendChild(trophy);
+        }
+        champCol.appendChild(mCard);
+    }
     
     if (appState.filter.region !== 'all') {
-        zoomToRound('all'); // Default to full overview
+        zoomToRound('all');
     }
-}
-
-function renderFinalFourBlock(ff, champ, container) {
-    const ffBlock = document.createElement('div');
-    ffBlock.className = 'final_four_block';
-    
-    const title = document.createElement('div');
-    title.className = 'region-grid-title';
-    title.textContent = 'National Championship';
-    ffBlock.appendChild(title);
-    
-    const ffFlex = document.createElement('div');
-    ffFlex.className = 'ff-flex-row';
-    ffFlex.style.display = 'flex';
-    ffFlex.style.alignItems = 'center';
-    ffFlex.style.gap = '3rem';
-    
-    if (ff[0]) {
-        const mDiv = document.createElement('div');
-        mDiv.className = 'matchup-card ff-matchup';
-        mDiv.appendChild(createTeamLine('final_four', 1, ff[0].team_a, ff[0].seed_a, ff[0].winner === ff[0].team_a, ''));
-        mDiv.appendChild(createTeamLine('final_four', 1, ff[0].team_b, ff[0].seed_b, ff[0].winner === ff[0].team_b, ''));
-        ffFlex.appendChild(mDiv);
-    }
-    
-    const cCard = document.createElement('div');
-    cCard.className = 'matchup-card champ-matchup';
-    cCard.style.border = '2px solid var(--accent-gold)';
-    cCard.appendChild(createTeamLine('championship', 1, champ.team_a, champ.seed_a, champ.winner === champ.team_a, ''));
-    cCard.appendChild(createTeamLine('championship', 1, champ.team_b, champ.seed_b, champ.winner === champ.team_b, ''));
-    
-    if (champ.winner) {
-        const trophy = document.createElement('div');
-        trophy.className = 'champ-winner-glow';
-        trophy.innerHTML = `🏆 ${champ.winner} 🏆`;
-        cCard.appendChild(trophy);
-    }
-    ffFlex.appendChild(cCard);
-
-    if (ff[1]) {
-        const mDiv = document.createElement('div');
-        mDiv.className = 'matchup-card ff-matchup';
-        mDiv.appendChild(createTeamLine('final_four', 1, ff[1].team_a, ff[1].seed_a, ff[1].winner === ff[1].team_a, ''));
-        mDiv.appendChild(createTeamLine('final_four', 1, ff[1].team_b, ff[1].seed_b, ff[1].winner === ff[1].team_b, ''));
-        ffFlex.appendChild(mDiv);
-    }
-    
-    ffBlock.appendChild(ffFlex);
-    container.appendChild(ffBlock);
 }
 
 function createTeamLine(region, round, teamName, seed, isWinner, prob) {
@@ -383,16 +372,13 @@ function createTeamLine(region, round, teamName, seed, isWinner, prob) {
             if (e.target.classList.contains('lock-icon')) {
                 toggleLock(region, round, team);
             } else {
-                // Find opponent for modal
-                let opponent = "TBD";
                 const currentRound = appState.currentData?.regions[region]?.[round-1];
                 if (currentRound) {
                     const matchup = currentRound.matchups.find(m => m.team_a === team || m.team_b === team);
                     if (matchup) {
-                        opponent = matchup.team_a === team ? matchup.team_b : matchup.team_a;
+                        openMatchupModal(matchup);
                     }
                 }
-                openMatchupModal(team, opponent);
             }
         });
     }
@@ -405,54 +391,161 @@ window.zoomToRound = function(round) {
     const container = document.getElementById('bracket-container');
     if (!container) return;
 
-    let scale = 1.0;
-    let translateX = 0;
-    let translateY = 0;
-
-    // Remove active class from all round buttons
-    document.querySelectorAll('.round-btn').forEach(btn => btn.classList.remove('active'));
-    
-    // Find the clicked button and add active class
-    const buttons = document.querySelectorAll('.round-btn');
-    buttons.forEach(btn => {
-        if (round === 'all' && btn.textContent.includes('Overview')) btn.classList.add('active');
-        if (round === 64 && btn.textContent.includes('64')) btn.classList.add('active');
-        if (round === 32 && btn.textContent.includes('32')) btn.classList.add('active');
-        if (round === 16 && btn.textContent.includes('16')) btn.classList.add('active');
-        if (round === 8) btn.classList.add('active');
-        if (round === 4) btn.classList.add('active');
-        if (round === 2 && btn.textContent.includes('Champ')) btn.classList.add('active');
-    });
-
-    if (round === 'all') {
-        scale = 0.45; // Increased from 0.25 so names are legible
-        translateX = 0;
-        translateY = 0;
-    } else {
-        scale = 1.0;
-        // Each round column is 240px + 40px gap = 280px
-        if (round === 64) translateX = 0;
-        if (round === 32) translateX = -280;
-        if (round === 16) translateX = -560;
-        if (round === 8) translateX = -840;
-        if (round === 4) translateX = -1100; // Final Four focus
-        if (round === 2) translateX = -1250; // Championship focus
-        
-        translateY = 0; // Default to top of stack
+    // Remove active class from overview button
+    const overviewBtn = document.getElementById('overview-btn');
+    if (overviewBtn) {
+        if (round === 'all') overviewBtn.classList.add('active');
+        else overviewBtn.classList.remove('active');
     }
 
-    container.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
+    if (round === 'all') {
+        const vH = window.innerHeight;
+        // Standard overview: fit all 64 rows (3840px)
+        appState.zoom.scale = Math.min(0.4, (vH - 180) / 3840); 
+        appState.zoom.x = 0;
+        appState.zoom.y = 0;
+    } else {
+        const vH = window.innerHeight;
+        // Adaptive Scale: Fit exactly one region (16 rows * 60px = 960px)
+        // We add a tiny bit of padding for comfort
+        appState.zoom.scale = (vH - 200) / 960; 
+        
+        let colIndex = 0;
+        if (round === 64) colIndex = 0;
+        else if (round === 32) colIndex = 1;
+        else if (round === 16) colIndex = 2;
+        else if (round === 8) colIndex = 3;
+        else if (round === 4) colIndex = 4;
+        else if (round === 2) colIndex = 5;
+
+        // 64px is the 4rem left padding. 280px is col width.
+        // Shift left to the start of that round's column
+        appState.zoom.x = (colIndex * 280) + 64; 
+        appState.zoom.y = 0; 
+    }
+
+    applyZoom();
     
-    // Auto-scroll the viewport to the top of the container
     const viewport = document.querySelector('.full-viewport');
     if (viewport) {
-        viewport.scrollTo({ top: 0, behavior: 'smooth' });
+        // scrollTo coordinates must be in the current scaled flow
+        const targetX = appState.zoom.x * appState.zoom.scale;
+        const targetY = appState.zoom.y * appState.zoom.scale;
+
+        viewport.scrollTo({ 
+            top: targetY, 
+            left: targetX, 
+            behavior: 'smooth' 
+        });
     }
 }
 
-function openMatchupModal(teamA, teamB) {
+// --- Simulation Control ---
+
+window.resetSimulation = function() {
+    appState.locks = {
+        regions: {},
+        final_four: {},
+        championship: {}
+    };
+    
+    // Also reset any active button states
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('.tab-btn[data-mode="custom"]')?.classList.add('active');
+    appState.mode = 'custom';
+    
+    runSimulation();
+}
+
+function applyZoom() {
+    const container = document.getElementById('bracket-container');
+    const proxy = document.getElementById('zoom-container');
+    if (!container || !proxy) return;
+    
+    // Scale the visual
+    container.style.transform = `scale(${appState.zoom.scale})`;
+    
+    // Size the proxy to force native scrollbars
+    // Width: 7 col * 280px = 1960. 
+    // Height: 64 rows * 60px = 3840.
+    proxy.style.width = (2200 * appState.zoom.scale) + "px";
+    proxy.style.height = (3840 * appState.zoom.scale) + "px";
+}
+
+function initInteractiveZoom() {
+    const viewport = document.querySelector('.full-viewport');
+    if (!viewport) return;
+
+    viewport.addEventListener('wheel', (e) => {
+        if (!e.ctrlKey && !e.metaKey) return; 
+
+        e.preventDefault();
+        const delta = e.deltaY;
+        const zoomSpeed = 0.001;
+        
+        // Capture mouse position for potentially centering zoom later
+        appState.zoom.scale = Math.min(Math.max(0.1, appState.zoom.scale - delta * zoomSpeed), 3.0);
+        applyZoom();
+    }, { passive: false });
+
+    // Panning is now primarily native via overflow:auto
+    // Removing mousedown/mousemove logic to prevent conflicts
+}
+
+function openMatchupModal(matchup) {
     const modal = document.getElementById('matchup-modal');
-    if (modal) modal.classList.add('active');
+    if (!modal) return;
+    
+    const teamA = appState.teams[matchup.team_a] || { name: matchup.team_a, seed: matchup.seed_a };
+    const teamB = appState.teams[matchup.team_b] || { name: matchup.team_b, seed: matchup.seed_b };
+
+    // Set probability from the matchup itself
+    const vol = appState.volatility / 100;
+    const probA = matchup.probability || 0.5;
+    const blendedA = ((1.0 - vol) * probA) + (vol * 0.5);
+    
+    const probBadge = document.getElementById('modal-prob');
+    if (probBadge) probBadge.textContent = `${(blendedA * 100).toFixed(0)}% Win Prob`;
+
+    // Populate Modal Content
+    const title = modal.querySelector('h2') || modal.querySelector('.modal-title');
+    if (title) title.innerHTML = `<span style="color:var(--accent-gold)">${teamA.name}</span> vs <span style="color:var(--accent-gold)">${teamB.name}</span>`;
+    
+    // Why Analysis (Dynamic summary)
+    const whyContent = document.getElementById('modal-why-content');
+    if (whyContent) {
+        const favorite = blendedA > 0.5 ? teamA : teamB;
+        const underdog = blendedA > 0.5 ? teamB : teamA;
+        const confText = favorite.is_power_conf ? "power conference powerhouse" : "disciplined contender";
+        
+        whyContent.innerHTML = `
+            <p><strong>Scenario Intelligence:</strong> ${favorite.name} enters as the statistical favorite with a ${confText} profile. 
+            The simulation indicates a ${ (Math.abs(blendedA - 0.5) * 200).toFixed(0) }% efficiency advantage in our multi-era regression model.</p>
+            <p style="margin-top:0.5rem"><strong>Key Factor:</strong> Verticality and tempo control. ${teamA.name}'s efficiency at ${teamA.off_efficiency?.toFixed(1) || 'N/A'} vs ${teamB.name}'s ${teamB.off_efficiency?.toFixed(1) || 'N/A'} is the primary driver of this projection.</p>
+        `;
+    }
+
+    // Metric Comparison Table
+    const metricsTable = document.getElementById('modal-metrics-table');
+    if (metricsTable) {
+        const metrics = [
+            { name: "Seed", a: teamA.seed || '?', b: teamB.seed || '?' },
+            { name: "Offensive Eff", a: teamA.off_efficiency?.toFixed(1) || 'N/A', b: teamB.off_efficiency?.toFixed(1) || 'N/A' },
+            { name: "Defensive Eff", a: teamA.def_efficiency?.toFixed(1) || 'N/A', b: teamB.def_efficiency?.toFixed(1) || 'N/A' },
+            { name: "Adj Tempo", a: teamA.pace?.toFixed(1) || 'N/A', b: teamB.pace?.toFixed(1) || 'N/A' },
+            { name: "Season Luck", a: (teamA.luck > 0 ? '+' : '') + (teamA.luck?.toFixed(3) || '0.000'), b: (teamB.luck > 0 ? '+' : '') + (teamB.luck?.toFixed(3) || '0.000') }
+        ];
+        
+        metricsTable.innerHTML = metrics.map(m => `
+            <div class="metric-row">
+                <span class="metric-name">${m.name}</span>
+                <span class="metric-val" style="color:${parseFloat(m.a) > parseFloat(m.b) ? 'var(--accent-gold)' : 'inherit'}">${m.a}</span>
+                <span class="metric-val" style="color:${parseFloat(m.b) > parseFloat(m.a) ? 'var(--accent-gold)' : 'inherit'}">${m.b}</span>
+            </div>
+        `).join('');
+    }
+    
+    modal.classList.add('active');
 }
 
 function closeMatchupModal() {
@@ -472,6 +565,8 @@ document.addEventListener('DOMContentLoaded', () => {
             runSimulation();
         });
     }
+
+    initInteractiveZoom();
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -518,16 +613,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const bracketContainer = document.getElementById('bracket-container');
-    if (bracketContainer) {
-        bracketContainer.addEventListener('click', (e) => {
-            const card = e.target.closest('.matchup-card');
-            if (card && !card.classList.contains('ff-matchup') && !card.classList.contains('champ-matchup')) {
-                // For now, just a placeholder for matchup intelligence
-                document.getElementById('matchup-modal').classList.add('active');
-            }
-        });
-    }
+    // Matchup intelligence is now handled via event delegation inside createTeamLine or on cards
+    // Removing redundant global listener that might block clicks
 
     const closeModal = document.getElementById('close-modal');
     if (closeModal) {
