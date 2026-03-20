@@ -113,10 +113,27 @@ class SimulatorEngine:
         round_bonus = (round_num - 1) * self.weights.late_round_def_premium
         delta += def_advantage * 0.05 * round_bonus
 
-        # Era-Specific Scaling
+        # Era-Specific Scaling & 2025 Indicators
         year = team_a.year or 2024
         if year <= 2010: delta += (def_b - def_a) * 0.02 * self.weights.defensive_grit_bias
         if year >= 2015: delta += (self._get_metric(team_a, 'three_par', 0.35) - self._get_metric(team_b, 'three_par', 0.35)) * 1.5 * self.weights.three_point_dominance
+        
+        # 2025 Specific Rules (v2025_indicators.json)
+        if year >= 2025:
+            # Continuation Rule (Impact on Offensive Efficiency)
+            delta += (self._get_metric(team_a, 'off_efficiency', 100.0) - self._get_metric(team_b, 'off_efficiency', 100.0)) * 0.01 * self.weights.continuation_rule_bias
+            
+            # ORB Density (Second Chance Multiplier)
+            if self._get_metric(team_a, 'off_orb_pct', 25.0) > 35.0:
+                delta += 0.5 * self.weights.orb_density_weight
+            if self._get_metric(team_b, 'off_orb_pct', 25.0) > 35.0:
+                delta -= 0.5 * self.weights.orb_density_weight
+                
+            # Tempo Upset Strategy (Slow tempo underdog neutralization)
+            if self._get_metric(team_a, 'pace', 70.0) < 65.0 and self._get_metric(team_a, 'seed', 16) > self._get_metric(team_b, 'seed', 1):
+                delta += 0.3 * self.weights.tempo_upset_weight
+            elif self._get_metric(team_b, 'pace', 70.0) < 65.0 and self._get_metric(team_b, 'seed', 16) > self._get_metric(team_a, 'seed', 1):
+                delta -= 0.3 * self.weights.tempo_upset_weight
 
         # Bench & Continuity
         delta += (self._get_metric(team_a, 'bench_minutes_pct', 25.0) - self._get_metric(team_b, 'bench_minutes_pct', 25.0)) * 0.05 * self.weights.bench_rest_bonus
@@ -137,16 +154,19 @@ class SimulatorEngine:
             aura_b = 0.5 if any(bb in team_b.name for bb in blue_bloods) else 0.0
             delta += (aura_a - aura_b) * self.weights.blue_blood_bonus
 
-        # Final Probability Calculation (Sigmoid)
+        # Final Probability Calculation (Sigmoid / Logistic)
+        # Replacing linear certainty with a calibrated logistic curve
         try:
-            # P(A) = 1 / (1 + e^-delta)
-            # Use k factor to scale the steepness if needed (default 1.0)
-            final_probability = 1.0 / (1.0 + math.exp(-delta))
+            # Scale delta by a normalization factor to prevent saturation
+            # Higher variance_scale = more 50/50 games (more upsets)
+            # Lower variance_scale = more chalky (saturated)
+            variance_scale = 1.0 + (self.volatility * 2.0)
+            final_probability = 1.0 / (1.0 + math.exp(-delta / variance_scale))
         except OverflowError:
             final_probability = 1.0 if delta > 0 else 0.0
 
-        # Clamp to valid probability bounds [0.01, 0.99] to allow for upsets always
-        final_probability = max(0.01, min(0.99, final_probability))
+        # Clamp to valid probability bounds [0.001, 0.999] for Log-Likelihood stability
+        final_probability = max(0.001, min(0.999, final_probability))
         
         return final_probability
 

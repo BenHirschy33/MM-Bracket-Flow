@@ -220,16 +220,61 @@
 }
 
 .bracket-stage {
-    display: grid;
-    grid-template-columns: repeat(7, 280px);
-    grid-template-rows: repeat(64, 60px); 
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
     gap: 0;
-    padding: 1rem 4rem;
+    padding: 2rem;
     min-width: max-content;
-    transform-origin: 0 0; /* Critical for scroll alignment */
+    transform-origin: center top;
     transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    background: none;
-    border: none;
+}
+
+.quad-grid {
+    display: grid;
+    grid-template-columns: 1120px 600px 1120px; /* 4 cols * 280px | center | 4 cols * 280px */
+    grid-template-rows: repeat(2, 960px); /* 16 rows * 60px */
+    gap: 0;
+}
+
+.region-container {
+    display: grid;
+    grid-template-columns: repeat(4, 280px);
+    grid-template-rows: repeat(16, 60px);
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.region-container.mirrored {
+    direction: rtl;
+}
+
+.center-stage {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4rem;
+    border-left: 1px solid var(--glass-border);
+    border-right: 1px solid var(--glass-border);
+    background: rgba(255, 184, 0, 0.02);
+}
+
+.region-container .round-column {
+    display: grid;
+    grid-template-rows: repeat(16, 60px);
+    width: 280px;
+    height: 100%;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    pointer-events: none;
+}
+
+.region-container.mirrored .round-column {
+    border-right: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Legacy regional blocks are removed in favor of a unified tournament grid */
@@ -349,21 +394,20 @@
     z-index: -1;
 }
 
-/* Elbows for Top/Bottom pairings */
-.matchup-card.m-top::after {
-    height: calc(var(--span-height) / 2); 
-    border-right: 2px solid rgba(255, 255, 255, 0.4);
-    border-top: 2px solid rgba(255, 255, 255, 0.4);
-    background: none;
+/* Mirrored Connectors */
+.region-container.mirrored .matchup-card::after {
+    right: auto;
+    left: -40px;
 }
 
-.matchup-card.m-bottom::after {
-    height: calc(var(--span-height) / 2);
-    top: auto;
-    bottom: 50%;
-    border-right: 2px solid rgba(255, 255, 255, 0.4);
-    border-bottom: 2px solid rgba(255, 255, 255, 0.4);
-    background: none;
+.region-container.mirrored .matchup-card.m-top::after {
+    border-right: none;
+    border-left: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.region-container.mirrored .matchup-card.m-bottom::after {
+    border-right: none;
+    border-left: 2px solid rgba(255, 255, 255, 0.4);
 }
 
 .matchup-card:hover {
@@ -1124,7 +1168,88 @@ input[type="range"] {
     100% { filter: drop-shadow(0 0 30px var(--accent-gold-glow)); }
 }
 
-/* Archetype Tags */
+/* Matchup Connectors */
+.matchup-card {
+    position: relative;
+}
+
+.matchup-card::after {
+    content: '';
+    position: absolute;
+    right: -1rem;
+    width: 1rem;
+    height: 1px;
+    background: var(--glass-border);
+    top: 50%;
+}
+
+.mirrored .matchup-card::after {
+    right: auto;
+    left: -1rem;
+}
+
+.m-top::after {
+    height: calc(var(--span-height) / 2);
+    border-right: 1px solid var(--glass-border);
+    border-top: 1px solid var(--glass-border);
+    border-radius: 0 10px 0 0;
+    top: 50%;
+}
+
+.m-bottom::after {
+    height: calc(var(--span-height) / 2);
+    border-right: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--glass-border);
+    border-radius: 0 0 10px 0;
+    top: auto;
+    bottom: 50%;
+}
+
+.mirrored .m-top::after {
+    border-right: none;
+    border-left: 1px solid var(--glass-border);
+    border-radius: 10px 0 0 0;
+}
+
+.mirrored .m-bottom::after {
+    border-right: none;
+    border-left: 1px solid var(--glass-border);
+    border-radius: 0 0 0 10px;
+}
+
+/* Center Stage (F4 / Championship) */
+.center-stage {
+    display: grid;
+    grid-template-columns: 1fr 400px 1fr;
+    grid-template-areas: "f4-left champ f4-right";
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+    z-index: 100;
+}
+
+.ff-games-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12rem;
+}
+
+.ff-left { grid-area: f4-left; }
+.ff-right { grid-area: f4-right; }
+.hero-champ { 
+    grid-area: champ; 
+    transform: scale(1.2);
+    box-shadow: 0 0 50px var(--accent-gold-glow);
+}
+
+.championship-box {
+    background: linear-gradient(135deg, rgba(255,184,0,0.1), rgba(255,184,0,0.02));
+    border: 2px solid var(--accent-gold);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-top: 1rem;
+}
+
 .archetype-tag {
     display: inline-block;
     padding: 0.15rem 0.5rem;

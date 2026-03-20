@@ -43,28 +43,25 @@ def get_multi_year_results(weights: SimulationWeights, years_list, iterations=50
 
 def cross_validate_weights(weights: SimulationWeights):
     """
-    Performs stability-first fitness calculation.
-    Fitness = sum(log(score)) * 50 + (Champ Acc * 1000) + (Elite Rate * 2000) - (Volatility)
+    Performs Log-Likelihood fitness calculation to maximize "Perfect Bracket" probability.
+    Fitness = average(log_likelihood) across all years + (Perfect Rate bonus)
     """
     results = get_multi_year_results(weights, YEARS)
     if not results:
-        return 0, 0, 0
+        return -10000, 0, 0
     
-    # Use log to heavily penalize years with low scores, forcing consistency (Stability)
-    # The user wants scores to be "the exact same" across years.
-    scores = [r["avg_score"] for r in results]
-    log_scores = [np.log(max(1, s)) for s in scores]
+    likelihoods = [r["log_likelihood"] for r in results]
+    avg_likelihood = np.mean(likelihoods)
     
-    accuracies = [r["champion_accuracy"] for r in results]
-    elite_rates = [r["elite_rate"] for r in results]
+    # Secondary metrics for display
+    avg_score = np.mean([r["avg_score"] for r in results])
+    avg_accuracy = np.mean([r["champion_accuracy"] for r in results])
+    perfect_rate = np.mean([r["perfect_rate"] for r in results])
     
-    avg_score = np.mean(scores)
-    avg_accuracy = np.mean(accuracies)
-    avg_elite_rate = np.mean(elite_rates)
-    std_score = np.std(scores)
+    # Fitness is primarily Log-Likelihood (sum of logs of correct probabilities)
+    # We add a massive bonus for actual "Perfect Brackets" encountered in simulations
+    fitness = avg_likelihood + (perfect_rate * 1000000)
     
-    # Stability Score: Rewards bringing the "bottom" up more than pushing the "top" higher
-    fitness = (np.sum(log_scores) * 50) + (avg_accuracy * 1000) + (avg_elite_rate * 2500) - (std_score * 3)
     return fitness, avg_score, avg_accuracy
 
 def optimize_simulated_annealing(iterations=100000, cooling_rate=0.99998):

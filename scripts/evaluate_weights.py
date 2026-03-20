@@ -75,8 +75,12 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
             current_teams = []
             # Round 1
             for h_seed, l_seed in SEED_MATCHUPS:
-                t_h = get_team_safely(seeds_map.get(str(h_seed)), teams_data)
-                t_l = get_team_safely(seeds_map.get(str(l_seed)), teams_data)
+                t_h_name = seeds_map.get(str(h_seed))
+                t_l_name = seeds_map.get(str(l_seed))
+                
+                t_h = get_team_safely(t_h_name, teams_data)
+                t_l = get_team_safely(t_l_name, teams_data)
+
                 if t_h: t_h.seed = h_seed
                 if t_l: t_l.seed = l_seed
                 

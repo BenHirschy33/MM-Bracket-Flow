@@ -1,8 +1,8 @@
-import sys
-import os
-# Ensure local dependencies are prioritised
-sys.path.insert(0, os.path.join(os.getcwd(), 'local_lib_v2'))
-sys.path.append(os.getcwd())
+import sys, os
+# Add local_lib and root to path
+base_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.abspath(os.path.join(base_dir, '..', 'local_lib_fix')))
+sys.path.insert(0, os.path.abspath(os.path.join(base_dir, '..')))
 
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
@@ -362,11 +362,13 @@ def run_full_sim():
         weights_data = data.get('weights', {})
         locks = data.get('locks', {})
         volatility = data.get('volatility', 0.0)
+        use_live_results = data.get('use_live_results', False)
         
         custom_weights = extract_weights(weights_data)
     else:
         year = request.args.get('year', default=2026, type=int)
         mode = request.args.get('mode', default='deterministic')
+        use_live_results = request.args.get('use_live', default='false').lower() == 'true'
         locks = {}
         
         # Parse weights from query params (e.g., ?sos=7.5&trb=4.2)
@@ -455,11 +457,22 @@ def run_full_sim():
                         logging.info(f"  TO A: {t_a.off_to_pct}, TO B: {t_b.off_to_pct}")
                         logging.info(f"  Result Prob A: {prob_a:.4f}")
                     
-                    if t_a.name in historical_winners: winner = t_a
-                    elif t_b.name in historical_winners: winner = t_b
-                    elif t_a.name in region_locks: winner = t_a
-                    elif t_b.name in region_locks: winner = t_b
-                    else: winner = engine.simulate_game(t_a, t_b, mode=mode)
+                    def normalize(name):
+                        return "".join(filter(str.isalnum, name.lower()))
+
+                    norm_a = normalize(t_a.name)
+                    norm_b = normalize(t_b.name)
+                    
+                    if use_live_results and any(norm_a == normalize(w) for w in historical_winners):
+                        winner = t_a
+                    elif use_live_results and any(norm_b == normalize(w) for w in historical_winners):
+                        winner = t_b
+                    elif t_a.name in region_locks: 
+                        winner = t_a
+                    elif t_b.name in region_locks: 
+                        winner = t_b
+                    else: 
+                        winner = engine.simulate_game(t_a, t_b, mode=mode)
                         
                     next_round.append(winner)
                     matchups.append({"team_a": t_a.name, "seed_a": t_a.seed, "team_b": t_b.name, "seed_b": t_b.seed, "winner": winner.name, "probability": prob_a})
@@ -491,15 +504,15 @@ def run_full_sim():
         ff_locks = locks.get('final_four', {})
 
         # Semi 1 Simulation
-        if e_win.name in ff_winners: ff_1 = e_win
-        elif s_win.name in ff_winners: ff_1 = s_win
+        if use_live_results and e_win.name in ff_winners: ff_1 = e_win
+        elif use_live_results and s_win.name in ff_winners: ff_1 = s_win
         elif e_win.name in ff_locks: ff_1 = e_win
         elif s_win.name in ff_locks: ff_1 = s_win
         else: ff_1 = engine.simulate_game(e_win, s_win, mode=mode)
 
         # Semi 2 Simulation
-        if w_win.name in ff_winners: ff_2 = w_win
-        elif m_win.name in ff_winners: ff_2 = m_win
+        if use_live_results and w_win.name in ff_winners: ff_2 = w_win
+        elif use_live_results and m_win.name in ff_winners: ff_2 = m_win
         elif w_win.name in ff_locks: ff_2 = w_win
         elif m_win.name in ff_locks: ff_2 = m_win
         else: ff_2 = engine.simulate_game(w_win, m_win, mode=mode)
@@ -511,8 +524,8 @@ def run_full_sim():
         
         # Championship
         champ_locks = locks.get('championship', {})
-        if ff_1.name == champ_winner: champ = ff_1
-        elif ff_2.name == champ_winner: champ = ff_2
+        if use_live_results and ff_1.name == champ_winner: champ = ff_1
+        elif use_live_results and ff_2.name == champ_winner: champ = ff_2
         elif ff_1.name in champ_locks: champ = ff_1
         elif ff_2.name in champ_locks: champ = ff_2
         else: champ = engine.simulate_game(ff_1, ff_2, mode=mode)
@@ -524,6 +537,19 @@ def run_full_sim():
     except Exception as e:
         import traceback
         traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/sync/live', methods=['POST'])
+def sync_live():
+    try:
+        import subprocess
+        year = request.args.get('year', default=2026, type=int)
+        result = subprocess.run(["python3", "scripts/sync_live_tournament.py", "--year", str(year)], capture_output=True, text=True)
+        if result.returncode == 0:
+            return jsonify({"message": f"Successfully synced {year} tournament data."})
+        else:
+            return jsonify({"error": result.stderr}), 500
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

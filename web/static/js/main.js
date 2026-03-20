@@ -260,7 +260,8 @@ async function runSimulation() {
                 mode: appState.mode,
                 volatility: appState.volatility / 100,
                 weights: weights,
-                locks: appState.locks
+                locks: appState.locks,
+                use_live_results: appState.useLiveResults || false
             })
         });
         const data = await response.json();
@@ -278,50 +279,68 @@ function renderBracketWaterfall(data) {
     if (!container) return;
     container.innerHTML = '';
     
-    const regionsOrder = ['East', 'South', 'West', 'Midwest'];
+    const quadGrid = document.createElement('div');
+    quadGrid.className = 'quad-grid';
+    container.appendChild(quadGrid);
+
+    // Regions Placement Mapping
+    const regionConfigs = {
+        'East': { col: 1, row: 1, mirrored: false },
+        'South': { col: 1, row: 2, mirrored: false },
+        'Midwest': { col: 3, row: 1, mirrored: true },
+        'West': { col: 3, row: 2, mirrored: true }
+    };
+
+    const regionsOrder = ['East', 'South', 'Midwest', 'West'];
     
-    // Create 7 columns (R64, R32, S16, E8, F4, Champ, Winner)
-    const columns = [];
-    for (let i = 1; i <= 7; i++) {
-        const col = document.createElement('div');
-        col.className = `round-column round-${i}`;
-        col.style.gridColumn = i;
-        columns.push(col);
-        container.appendChild(col);
-    }
+    // Create Center Stage
+    const centerStage = document.createElement('div');
+    centerStage.className = 'center-stage';
+    quadGrid.appendChild(centerStage);
 
     // Populate Regional Rounds (1-4)
-    regionsOrder.forEach((regionName, regIdx) => {
+    regionsOrder.forEach((regionName) => {
+        const config = regionConfigs[regionName];
         const rounds = data.regions[regionName];
         if (!rounds) return;
 
-        const rowOffset = regIdx * 16;
-        
-        // Add absolute positioned regional labels
+        const regContainer = document.createElement('div');
+        regContainer.className = `region-container ${config.mirrored ? 'mirrored' : ''}`;
+        regContainer.style.gridColumn = config.col;
+        regContainer.style.gridRow = config.row;
+        quadGrid.appendChild(regContainer);
+
+        // Region Label
         const label = document.createElement('div');
         label.className = 'region-label-v2';
-        label.style.top = `${rowOffset * 60 + 20}px`; // Updated to 60px
+        label.style.top = '10px';
+        if (config.mirrored) label.style.right = '2rem'; else label.style.left = '2rem';
         label.textContent = regionName;
-        container.appendChild(label);
+        regContainer.appendChild(label);
+
+        // Create 4 columns for this region
+        const columns = [];
+        for (let i = 1; i <= 4; i++) {
+            const col = document.createElement('div');
+            col.className = `round-column round-${i}`;
+            columns.push(col);
+            regContainer.appendChild(col);
+        }
 
         rounds.forEach((r) => {
-            const col = columns[r.round - 1]; // r.round is 1-4 here
+            const col = columns[r.round - 1];
             const span = Math.pow(2, r.round);
             
             r.matchups.forEach((m, mIdx) => {
                 const mCard = document.createElement('div');
                 mCard.className = 'matchup-card';
                 
-                // No special class for R32
-
                 // Add top/bottom class for connectors
-                if (r.round < 5) {
-                    const isTop = (r.round === 4) ? (regIdx % 2 === 0) : (mIdx % 2 === 0);
-                    mCard.classList.add(isTop ? 'm-top' : 'm-bottom');
-                }
+                const isTop = (mIdx % 2 === 0);
+                mCard.classList.add(isTop ? 'm-top' : 'm-bottom');
                 
                 const span = Math.pow(2, r.round);
-                const start = (mIdx * span) + rowOffset + 1;
+                const start = (mIdx * span) + 1;
                 mCard.style.gridRow = `${start} / span ${span}`;
                 mCard.style.setProperty('--span-height', `${span * 60}px`);
                 
@@ -339,28 +358,36 @@ function renderBracketWaterfall(data) {
 
     // Populate Final Four (Round 5)
     if (data.final_four) {
-        const f4Col = columns[4];
+        const leftF4 = document.createElement('div');
+        leftF4.className = 'ff-games-stack ff-left';
+        const rightF4 = document.createElement('div');
+        rightF4.className = 'ff-games-stack ff-right';
+        
+        centerStage.appendChild(leftF4);
+        centerStage.appendChild(rightF4);
+
         data.final_four.forEach((m, idx) => {
             const mCard = document.createElement('div');
-            mCard.className = `matchup-card ff-matchup ${idx === 0 ? 'm-top' : 'm-bottom'}`;
-            const start = (idx * 32) + 1;
-            mCard.style.gridRow = `${start} / span 32`;
-            mCard.style.setProperty('--span-height', `${32 * 60}px`);
+            mCard.className = `matchup-card ff-matchup`;
+            mCard.style.width = '300px';
             
             mCard.appendChild(createTeamLine('final_four', 1, m.team_a, m.seed_a, m.winner === m.team_a, ''));
             mCard.appendChild(createTeamLine('final_four', 1, m.team_b, m.seed_b, m.winner === m.team_b, ''));
-            f4Col.appendChild(mCard);
+            
+            if (idx === 0) leftF4.appendChild(mCard); else rightF4.appendChild(mCard);
         });
     }
 
     // Populate Championship (Round 6)
     if (data.championship) {
-        const champCol = columns[5];
         const m = data.championship;
+        const champContainer = document.createElement('div');
+        champContainer.className = 'hero-champ';
+        centerStage.appendChild(champContainer);
+
         const mCard = document.createElement('div');
-        mCard.className = 'matchup-card champ-matchup hero-champ';
-        mCard.style.gridRow = `1 / span 64`;
-        mCard.style.border = '2px solid var(--accent-gold)';
+        mCard.className = 'matchup-card championship-box';
+        mCard.style.width = '420px';
         
         mCard.appendChild(createTeamLine('championship', 1, m.team_a, m.seed_a, m.winner === m.team_a, ''));
         mCard.appendChild(createTeamLine('championship', 1, m.team_b, m.seed_b, m.winner === m.team_b, ''));
@@ -368,10 +395,12 @@ function renderBracketWaterfall(data) {
         if (m.winner) {
             const trophy = document.createElement('div');
             trophy.className = 'champ-winner-glow';
+            trophy.style.fontSize = '1.5rem';
+            trophy.style.marginTop = '1.5rem';
             trophy.innerHTML = `🏆 ${m.winner} 🏆`;
             mCard.appendChild(trophy);
         }
-        champCol.appendChild(mCard);
+        champContainer.appendChild(mCard);
     }
     
     if (appState.filter.region !== 'all') {
@@ -419,7 +448,6 @@ window.zoomToRound = function(round) {
     const container = document.getElementById('bracket-container');
     if (!container) return;
 
-    // Remove active class from overview button
     const overviewBtn = document.getElementById('overview-btn');
     if (overviewBtn) {
         if (round === 'all') overviewBtn.classList.add('active');
@@ -428,41 +456,25 @@ window.zoomToRound = function(round) {
 
     if (round === 'all') {
         const vH = window.innerHeight;
-        // Standard overview: fit all 64 rows (3840px)
-        appState.zoom.scale = Math.min(0.4, (vH - 180) / 3840); 
+        const vW = window.innerWidth;
+        const scaleH = (vH - 180) / 1920;
+        const scaleW = (vW - 100) / 2840;
+        appState.zoom.scale = Math.min(scaleH, scaleW, 0.45); 
         appState.zoom.x = 0;
         appState.zoom.y = 0;
     } else {
-        const vH = window.innerHeight;
-        // Adaptive Scale: Fit exactly one region (16 rows * 60px = 960px)
-        // We add a tiny bit of padding for comfort
-        appState.zoom.scale = (vH - 200) / 960; 
-        
-        let colIndex = 0;
-        if (round === 64) colIndex = 0;
-        else if (round === 32) colIndex = 1;
-        else if (round === 16) colIndex = 2;
-        else if (round === 8) colIndex = 3;
-        else if (round === 4) colIndex = 4;
-        else if (round === 2) colIndex = 5;
-
-        // 64px is the 4rem left padding. 280px is col width.
-        // Shift left to the start of that round's column
-        appState.zoom.x = (colIndex * 280) + 64; 
-        appState.zoom.y = 0; 
+        appState.zoom.scale = 0.8; 
+        appState.zoom.x = 0;
+        appState.zoom.y = 0;
     }
 
     applyZoom();
     
     const viewport = document.querySelector('.full-viewport');
     if (viewport) {
-        // scrollTo coordinates must be in the current scaled flow
-        const targetX = appState.zoom.x * appState.zoom.scale;
-        const targetY = appState.zoom.y * appState.zoom.scale;
-
         viewport.scrollTo({ 
-            top: targetY, 
-            left: targetX, 
+            top: 0, 
+            left: 0, 
             behavior: 'smooth' 
         });
     }
@@ -493,11 +505,9 @@ function applyZoom() {
     // Scale the visual
     container.style.transform = `scale(${appState.zoom.scale})`;
     
-    // Size the proxy to force native scrollbars
-    // Width: 7 col * 280px = 1960. 
-    // Height: 64 rows * 60px = 3840.
-    proxy.style.width = (2200 * appState.zoom.scale) + "px";
-    proxy.style.height = (3840 * appState.zoom.scale) + "px";
+    // Precise bounds for Quad Grid (2840px x 1920px)
+    proxy.style.width = (2840 * appState.zoom.scale + 100) + "px";
+    proxy.style.height = (1920 * appState.zoom.scale + 200) + "px";
 }
 
 function initInteractiveZoom() {
@@ -651,20 +661,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    document.querySelectorAll('input[type="range"][id^="weight-"]').forEach(slider => {
-        const id = slider.id.replace('weight-', '');
-        const numInput = document.getElementById(`num-${id}`);
-        slider.addEventListener('input', (e) => {
-            if (numInput) numInput.value = e.target.value;
+    document.querySelectorAll('input[type="range"][id^="weight-"], input[type="number"][id^="num-"]').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            const id = e.target.id.replace('weight-', '').replace('num-', '');
+            
+            const slider = document.getElementById(`weight-${id}`);
+            const numInput = document.getElementById(`num-${id}`);
             const label = document.getElementById(`val-${id}`);
-            if (label) label.textContent = e.target.value;
+            
+            if (slider) slider.value = val;
+            if (numInput) numInput.value = val;
+            if (label) label.textContent = val;
+            
             switchToCustom();
             debounceSim();
         });
     });
 
-    const runBtn = document.getElementById('run-sim-btn');
-    if (runBtn) runBtn.onclick = runSimulation;
+    const scratchBtn = document.getElementById('run-sim-scratch-btn');
+    if (scratchBtn) scratchBtn.onclick = () => {
+        appState.useLiveResults = false;
+        runSimulation();
+    };
+
+    const liveBtn = document.getElementById('run-sim-live-btn');
+    if (liveBtn) liveBtn.onclick = () => {
+        appState.useLiveResults = true;
+        runSimulation();
+    };
+
+    const syncBtn = document.getElementById('sync-live-btn');
+    if (syncBtn) syncBtn.onclick = async () => {
+        syncBtn.disabled = true;
+        syncBtn.textContent = '🔄 Syncing...';
+        try {
+            const res = await fetch('/api/sync/live', { method: 'POST' });
+            const data = await res.json();
+            alert(data.message || 'Sync complete!');
+            fetchTeams(appState.year);
+            runSimulation();
+        } catch (err) {
+            console.error('Sync failed', err);
+        } finally {
+            syncBtn.disabled = false;
+            syncBtn.textContent = '🔄 Sync';
+        }
+    };
 
     const resetBtn = document.getElementById('reset-optimal');
     if (resetBtn) resetBtn.onclick = resetToOptimal;
