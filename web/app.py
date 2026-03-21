@@ -611,7 +611,7 @@ def run_full_sim():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/sync/live', methods=['POST'])
-def sync_live():
+def sync_live_results():
     try:
         import subprocess
         year = request.args.get('year', default=2026, type=int)
