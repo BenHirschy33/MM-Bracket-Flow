@@ -20,14 +20,15 @@ def run_mass_backtest(iterations=100, years=None):
     
     for year in years:
         print(f"Evaluating {year}...")
-        avg_score, max_possible = evaluate_bracket(year, weights, iterations=iterations)
+        metrics = evaluate_bracket(year, weights, iterations=iterations)
+        avg_score = metrics.get("avg_score", -1.0)
         
         # Return of -1 means missing actual_results.json or data
         if avg_score >= 0:
             results[year] = avg_score
             overall_total_score += avg_score
             available_years += 1
-            print(f"  {year} Average Score: {round(avg_score, 1)} / {max_possible}")
+            print(f"  {year} Avg Score: {round(avg_score, 1)} | Likelihood: {round(metrics['log_likelihood'], 1)} | Champ: {round(metrics['champion_accuracy']*100)}%")
         else:
             print(f"  {year} Skipped: Missing historical results or bracket data.")
             

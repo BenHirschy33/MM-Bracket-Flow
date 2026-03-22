@@ -764,15 +764,22 @@ function openMatchupModal(matchup) {
         const underdog = blendedA > 0.5 ? teamB : teamA;
         const confText = favorite.is_power_conf ? "power conference powerhouse" : "disciplined contender";
         
-        let targetDescriptor = "";
-        if (appState.mode === 'balanced') {
-            targetDescriptor = "Optimal Mix of Consistency and Ceiling. ";
+        let keyFactorText = `Verticality and tempo control. ${teamA.name}'s efficiency at ${teamA.off_efficiency?.toFixed(1) || 'N/A'} vs ${teamB.name}'s ${teamB.off_efficiency?.toFixed(1) || 'N/A'} is the primary driver of this projection.`;
+        
+        const ksA = (teamA.adj_off_sq - teamA.adj_def_sq) || 0;
+        const ksB = (teamB.adj_off_sq - teamB.adj_def_sq) || 0;
+        if (Math.abs(ksA - ksB) > 3.0) {
+            keyFactorText = `ShotQuality Delta. ${ksA > ksB ? teamA.name : teamB.name} creates significantly higher-quality looks, giving them a structural advantage in the possession-based model.`;
+        } else if (Math.abs((teamA.recent_form || 0) - (teamB.recent_form || 0)) > 2.0) {
+            keyFactorText = `Late-Season Surge. ${teamA.recent_form > teamB.recent_form ? teamA.name : teamB.name} enters the tournament with superior recent momentum (+${Math.abs(teamA.recent_form - teamB.recent_form).toFixed(1)} Net Rating delta).`;
+        } else if (Math.abs((teamA.kill_shots_scored - teamA.kill_shots_conceded) - (teamB.kill_shots_scored - teamB.kill_shots_conceded)) > 2.0) {
+            keyFactorText = `Spurtability Trigger. ${ (teamA.kill_shots_scored - teamA.kill_shots_conceded) > (teamB.kill_shots_scored - teamB.kill_shots_conceded) ? teamA.name : teamB.name } is analytically more prone to game-breaking 10-0 scoring runs.`;
         }
 
         whyContent.innerHTML = `
             <p><strong>Scenario Intelligence:</strong> ${targetDescriptor}${favorite.name} enters as the statistical favorite with a ${confText} profile. 
-            The simulation indicates a ${ (Math.abs(blendedA - 0.5) * 200).toFixed(2) }% efficiency advantage in our multi-era regression model.</p>
-            <p style="margin-top:0.5rem"><strong>Key Factor:</strong> Verticality and tempo control. ${teamA.name}'s efficiency at ${teamA.off_efficiency?.toFixed(1) || 'N/A'} vs ${teamB.name}'s ${teamB.off_efficiency?.toFixed(1) || 'N/A'} is the primary driver of this projection.</p>
+            The simulation indicates a ${ (Math.abs(blendedA - 0.5) * 200).toFixed(2) }% efficiency advantage in our calibrated Monte Carlo resolution loop.</p>
+            <p style="margin-top:0.5rem"><strong>Key Factor:</strong> ${keyFactorText}</p>
         `;
     }
 
@@ -781,8 +788,12 @@ function openMatchupModal(matchup) {
     if (metricsTable) {
         const metrics = [
             { name: "Seed", a: teamA.seed || '?', b: teamB.seed || '?' },
-            { name: "Offensive Eff", a: teamA.off_efficiency?.toFixed(1) || 'N/A', b: teamB.off_efficiency?.toFixed(1) || 'N/A' },
-            { name: "Defensive Eff", a: teamA.def_efficiency?.toFixed(1) || 'N/A', b: teamB.def_efficiency?.toFixed(1) || 'N/A' },
+            { name: "Offensive Eff", a: teamA.off_efficiency?.toFixed(1) || teamA.off_eff?.toFixed(1) || 'N/A', b: teamB.off_efficiency?.toFixed(1) || teamB.off_eff?.toFixed(1) || 'N/A' },
+            { name: "Defensive Eff", a: teamA.def_efficiency?.toFixed(1) || teamA.def_eff?.toFixed(1) || 'N/A', b: teamB.def_efficiency?.toFixed(1) || teamB.def_eff?.toFixed(1) || 'N/A' },
+            { name: "Adj ShotQuality", a: (teamA.adj_off_sq - teamA.adj_def_sq)?.toFixed(1) || 'N/A', b: (teamB.adj_off_sq - teamB.adj_def_sq)?.toFixed(1) || 'N/A' },
+            { name: "Kill Shots (Net)", a: (teamA.kill_shots_scored - teamA.kill_shots_conceded)?.toFixed(1) || (teamA.ks_scored - teamA.ks_conceded)?.toFixed(1) || '0.0', b: (teamB.kill_shots_scored - teamB.kill_shots_conceded)?.toFixed(1) || (teamB.ks_scored - teamB.ks_conceded)?.toFixed(1) || '0.0' },
+            { name: "Recent Form", a: (teamA.recent_form > 0 ? '+' : '') + (teamA.recent_form?.toFixed(1) || '0.0'), b: (teamB.recent_form > 0 ? '+' : '') + (teamB.recent_form?.toFixed(1) || '0.0') },
+            { name: "Rim & 3 Rate", a: ((teamA.rim_3_rate || 0) * 100).toFixed(0) + '%', b: ((teamB.rim_3_rate || 0) * 100).toFixed(0) + '%' },
             { name: "Adj Tempo", a: teamA.pace?.toFixed(1) || 'N/A', b: teamB.pace?.toFixed(1) || 'N/A' },
             { name: "Season Luck", a: (teamA.luck > 0 ? '+' : '') + (teamA.luck?.toFixed(3) || '0.000'), b: (teamB.luck > 0 ? '+' : '') + (teamB.luck?.toFixed(3) || '0.000') }
         ];
