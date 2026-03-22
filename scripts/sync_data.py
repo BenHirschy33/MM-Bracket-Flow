@@ -122,7 +122,7 @@ def sync_data(year: int):
                 data["ORB"] = (orb / 10.0) if orb else None # Scale to roughly match % range
             
     engine_csv = base_dir / "team_stats.csv"
-    engine_headers = ["Team", "Seed", "AdjO", "AdjD", "Off_PPG", "Def_PPG", "Pace", "eFG_Off", "eFG_Def", "TO_Off", "TO_Def", "TRB", "ORB", "3PAr", "FTr", "SOS", "Wins", "Losses", "HomeW", "HomeL", "AwayW", "AwayL", "Momentum", "Intuition"]
+    engine_headers = ["Team", "Seed", "AdjO", "AdjD", "Off_PPG", "Def_PPG", "Pace", "PaceVar", "eFG_Off", "eFG_Def", "TO_Off", "TO_Def", "TRB", "ORB", "3PAr", "FTr", "Wins", "Losses", "HomeW", "HomeL", "AwayW", "AwayL", "RecentForm", "Intuition"]
     
     rows = []
     for team, data in team_data.items():
@@ -131,9 +131,8 @@ def sync_data(year: int):
             "Seed": "",
             "AdjO": data.get("AdjO"),
             "AdjD": None,
-            "Off_PPG": data.get("Off_PPG"),
-            "Def_PPG": data.get("Def_PPG"),
             "Pace": data.get("Pace"),
+            "PaceVar": 0.0, # To be updated via advanced sync
             "eFG_Off": data.get("eFG_Off"),
             "eFG_Def": None,
             "TO_Off": data.get("TO_Off"),
@@ -142,14 +141,13 @@ def sync_data(year: int):
             "ORB": data.get("ORB"),
             "3PAr": data.get("3PAr"),
             "FTr": data.get("FTr"),
-            "SOS": data.get("SOS"),
             "Wins": data.get("Wins"),
             "Losses": data.get("Losses"),
             "HomeW": data.get("HomeW"),
             "HomeL": data.get("HomeL"),
             "AwayW": data.get("AwayW"),
             "AwayL": data.get("AwayL"),
-            "Momentum": 0.0,
+            "RecentForm": 0.0,
             "Intuition": 0.0
         })
             

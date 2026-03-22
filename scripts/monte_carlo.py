@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from core.parser import load_teams, load_bracket
 from core.simulator import SimulatorEngine
-from core.config import SimulationWeights
+from core.config import SimulationWeights, DEFAULT_WEIGHTS
 from scripts.run_bracket import SEED_MATCHUPS
 
 def run_monte_carlo(year: int, iterations: int):
@@ -19,7 +19,7 @@ def run_monte_carlo(year: int, iterations: int):
         print(f"Error loading data: {e}")
         sys.exit(1)
         
-    engine = SimulatorEngine()
+    engine = SimulatorEngine(teams=teams_data, weights=DEFAULT_WEIGHTS)
     
     # Tracking dictionaries: { team_name: count }
     results_tracker = {
@@ -54,7 +54,7 @@ def run_monte_carlo(year: int, iterations: int):
             round_num = 1
             while len(current_round_teams) > 1:
                 next_round = []
-                for j in range(0, len(current_round_teams), 2):
+                for j in range(0, len(current_round_teams) - 1, 2):
                     winner = engine.simulate_game(current_round_teams[j], current_round_teams[j+1], mode="probabilistic")
                     next_round.append(winner)
                     

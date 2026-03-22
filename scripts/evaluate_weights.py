@@ -10,6 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from core.simulator import SimulatorEngine
 from core.parser import load_teams, load_bracket, normalize_team_name
+from core.team_model import Team
 from core.config import SimulationWeights
 
 SEED_MATCHUPS = [(1, 16), (8, 9), (5, 12), (4, 13), (6, 11), (3, 14), (7, 10), (2, 15)]
@@ -75,19 +76,19 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
             current_teams = []
             # Round 1
             for h_seed, l_seed in SEED_MATCHUPS:
-                t_h_name = seeds_map.get(str(h_seed))
-                t_l_name = seeds_map.get(str(l_seed))
+                t_h_name = seeds_map.get(str(h_seed)) or "TBD"
+                t_l_name = seeds_map.get(str(l_seed)) or "TBD"
                 
-                t_h = get_team_safely(t_h_name, teams_data)
-                t_l = get_team_safely(t_l_name, teams_data)
+                t_h = get_team_safely(t_h_name, teams_data) or Team(name=t_h_name, seed=h_seed, off_efficiency=100.0, def_efficiency=100.0, off_ppg=70.0, def_ppg=70.0)
+                t_l = get_team_safely(t_l_name, teams_data) or Team(name=t_l_name, seed=l_seed, off_efficiency=100.0, def_efficiency=100.0, off_ppg=70.0, def_ppg=70.0)
 
-                if t_h: t_h.seed = h_seed
-                if t_l: t_l.seed = l_seed
+                t_h.seed = h_seed
+                t_l.seed = l_seed
                 
                 if t_h and t_l:
                     prob_h = engine.calculate_win_probability(t_h, t_l, round_num=1)
                     winner_name = t_h.name if random.random() < prob_h else t_l.name
-                    winner = teams_data[winner_name]
+                    winner = teams_data.get(winner_name) or Team(name=winner_name, seed=16, off_efficiency=100.0, def_efficiency=100.0, off_ppg=70.0, def_ppg=70.0)
                     current_teams.append(winner)
                     
                     # Update Likelihood if this was the first iteration
@@ -107,7 +108,7 @@ def evaluate_bracket(year: int, weights: SimulationWeights, iterations: int = 1)
                     t_a, t_b = current_teams[i], current_teams[i+1]
                     prob_a = engine.calculate_win_probability(t_a, t_b, round_num=r_idx)
                     winner_name = t_a.name if random.random() < prob_a else t_b.name
-                    winner = teams_data[winner_name]
+                    winner = teams_data.get(winner_name) or Team(name=winner_name, seed=16, off_efficiency=100.0, def_efficiency=100.0, off_ppg=70.0, def_ppg=70.0)
                     next_round.append(winner)
                     
                     if _ == 0:
