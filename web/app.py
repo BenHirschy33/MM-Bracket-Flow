@@ -135,7 +135,14 @@ def get_preset_weights():
         try:
             with open(gold_path) as f:
                 gold = _json.load(f)
-            key = "max_avg" if mode == "avg" else "max_champion"
+            
+            if mode == "avg":
+                key = "max_avg"
+            elif mode == "balanced":
+                key = "max_balanced"
+            else:
+                key = "max_champion"
+                
             weights_dict = gold[key]["weights"]
             meta = gold[key].get("meta", {})
             return jsonify({"mode": mode, "meta": meta, "weights": weights_dict})
@@ -417,12 +424,45 @@ def get_matchup_detail():
                 "description": f"{t_a.name if orb_a > orb_b else t_b.name} is a glass-crashing juggernaut, generating critical second-chance opportunities."
             })
 
+        # --- Advanced Modern Metrics ---
+        # Adj SQ Check
+        sq_a = (t_a.adj_off_sq or 0) - (t_a.adj_def_sq or 0)
+        sq_b = (t_b.adj_off_sq or 0) - (t_b.adj_def_sq or 0)
+        if abs(sq_a - sq_b) > 4.0:
+            analysis.append({
+                "factor": "ShotQuality Profile",
+                "importance": "High",
+                "description": f"{t_a.name if sq_a > sq_b else t_b.name} creates higher-quality scoring opportunities, suggesting their process is superior regardless of shooting luck."
+            })
+
+        # Kill Shots
+        ks_a = (t_a.kill_shots_scored or 0) - (t_a.kill_shots_conceded or 0)
+        ks_b = (t_b.kill_shots_scored or 0) - (t_b.kill_shots_conceded or 0)
+        if abs(ks_a - ks_b) > 2.0:
+            analysis.append({
+                "factor": "Spurtability (Kill Shots)",
+                "importance": "Medium",
+                "description": f"{t_a.name if ks_a > ks_b else t_b.name} is significantly more prone to game-breaking scoring runs, making them dangerous in a knockout format."
+            })
+
+        # Rim-and-3 Rate (Volatility)
+        r3_a = t_a.rim_3_rate or 0.4
+        r3_b = t_b.rim_3_rate or 0.4
+        if abs(r3_a - r3_b) > 0.1:
+            analysis.append({
+                "factor": "Shot Distribution",
+                "importance": "Medium",
+                "description": f"{t_a.name if r3_a > r3_b else t_b.name} hyper-focuses on the most efficient shots (Rim and 3s), leading to higher offensive variance."
+            })
+
         return jsonify({
             "team_a": {
                 "name": t_a.name, "seed": t_a.seed,
                 "off_eff": t_a.off_efficiency, "def_eff": t_a.def_efficiency,
                 "sos": t_a.sos, "trb": t_a.trb_pct, "mom": t_a.momentum, "ft": t_a.off_ft_pct,
                 "luck": luck_a, "star_reliance": star_a, "orb_pct": orb_a, "ft_rate": ftr_a,
+                "adj_off_sq": t_a.adj_off_sq, "adj_def_sq": t_a.adj_def_sq, "rim_3_rate": t_a.rim_3_rate,
+                "ks_scored": t_a.kill_shots_scored, "ks_conceded": t_a.kill_shots_conceded, "bpr": t_a.bpr,
                 "archetype": t_a.archetype
             },
             "team_b": {
@@ -430,6 +470,8 @@ def get_matchup_detail():
                 "off_eff": t_b.off_efficiency, "def_eff": t_b.def_efficiency,
                 "sos": t_b.sos, "trb": t_b.trb_pct, "mom": t_b.momentum, "ft": t_b.off_ft_pct,
                 "luck": luck_b, "star_reliance": star_b, "orb_pct": orb_b, "ft_rate": ftr_b,
+                "adj_off_sq": t_b.adj_off_sq, "adj_def_sq": t_b.adj_def_sq, "rim_3_rate": t_b.rim_3_rate,
+                "ks_scored": t_b.kill_shots_scored, "ks_conceded": t_b.kill_shots_conceded, "bpr": t_b.bpr,
                 "archetype": t_b.archetype
             },
             "probability": prob_a,

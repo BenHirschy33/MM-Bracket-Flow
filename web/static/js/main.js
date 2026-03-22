@@ -1,7 +1,7 @@
 console.log("[MM-Bracket-Flow] main.js loaded v1.2");
 
 const appState = {
-    mode: 'standard', // standard, average, perfect
+    mode: 'balanced', // standard, average, balanced, perfect
     showSettings: false,
     year: '2026',
     volatility: 0,
@@ -256,7 +256,83 @@ function toggleLock(region, round, teamName) {
             }
         }
     }
-    runSimulation();
+    
+    // Partial Locking: Instead of a full simulation recalculation, we update locally
+    if (appState.currentData) {
+        propagateLocksLocally(appState.currentData, appState.locks);
+        renderBracketWaterfall(appState.currentData);
+    } else {
+        runSimulation();
+    }
+}
+
+function propagateLocksLocally(data, locks) {
+    if (!data) return;
+    
+    const regions = ['East', 'South', 'Midwest', 'West'];
+    regions.forEach(region => {
+        if (!data.regions[region]) return;
+        
+        for (let r = 1; r <= 4; r++) {
+            const rd = data.regions[region][r-1];
+            if (!rd) continue;
+            
+            rd.matchups.forEach((m, idx) => {
+                const lockedInThisRound = locks.regions?.[region]?.[r];
+                if (lockedInThisRound) {
+                    if (lockedInThisRound[m.team_a]) m.winner = m.team_a;
+                    else if (lockedInThisRound[m.team_b]) m.winner = m.team_b;
+                }
+                
+                // Propagate forward locally
+                if (m.winner && r < 4) {
+                     const nextRd = data.regions[region][r];
+                     if (nextRd) {
+                         const nextM = nextRd.matchups[Math.floor(idx / 2)];
+                         const isTeamA = idx % 2 === 0;
+                         if (isTeamA) {
+                              nextM.team_a = m.winner;
+                              nextM.seed_a = m.winner === m.team_a ? m.seed_a : m.seed_b;
+                         } else {
+                              nextM.team_b = m.winner;
+                              nextM.seed_b = m.winner === m.team_a ? m.seed_a : m.seed_b;
+                         }
+                     }
+                }
+            });
+        }
+    });
+
+    // F4 propagation
+    if (data.final_four) {
+        data.final_four.forEach((m, idx) => {
+             const r = 5;
+             const lockedInThisRound = locks.final_four;
+             if (lockedInThisRound) {
+                 if (lockedInThisRound[m.team_a]) m.winner = m.team_a;
+                 else if (lockedInThisRound[m.team_b]) m.winner = m.team_b;
+             }
+             if (m.winner && data.championship) {
+                 const isTeamA = idx === 0;
+                 if (isTeamA) {
+                     data.championship.team_a = m.winner;
+                     data.championship.seed_a = m.winner === m.team_a ? m.seed_a : m.seed_b;
+                 } else {
+                     data.championship.team_b = m.winner;
+                     data.championship.seed_b = m.winner === m.team_a ? m.seed_a : m.seed_b;
+                 }
+             }
+        });
+    }
+
+    // Champ propagation
+    if (data.championship) {
+        const lockedInThisRound = locks.championship;
+        if (lockedInThisRound) {
+             if (lockedInThisRound[data.championship.team_a]) data.championship.winner = data.championship.team_a;
+             else if (lockedInThisRound[data.championship.team_b]) data.championship.winner = data.championship.team_b;
+        }
+    }
 }
 
 function isLocked(region, round, team) {
@@ -314,24 +390,30 @@ async function renderMMBracket() {
 
 async function initWeights() {
     try {
-        // Fetch both preset profiles in parallel
-        const [avgRes, champRes] = await Promise.all([
+        // Fetch preset profiles in parallel
+        const [avgRes, champRes, balancedRes] = await Promise.all([
             fetch('/api/weights/preset?mode=avg'),
-            fetch('/api/weights/preset?mode=champion')
+            fetch('/api/weights/preset?mode=champion'),
+            fetch('/api/weights/preset?mode=balanced')
         ]);
         const avgData = await avgRes.json();
         const champData = await champRes.json();
+        const balancedData = await balancedRes.json();
 
         // Store the full weight dicts for each mode
         appState.optimalWeights = avgData.weights || {};
         appState.perfectWeights = champData.weights || {};
+        appState.balancedWeights = balancedData.weights || {};
 
         console.log('[Weights] Loaded MAX_AVG preset:', avgData.meta);
         console.log('[Weights] Loaded MAX_PERFECT preset:', champData.meta);
+        console.log('[Weights] Loaded BALANCED preset:', balancedData.meta);
         
-        // Populate sliders for initial mode (custom/avg)
+        // Populate sliders for initial mode (custom/avg/balanced)
         if (appState.mode === 'average') {
             applyWeights(appState.optimalWeights);
+        } else if (appState.mode === 'balanced') {
+            applyWeights(appState.balancedWeights);
         }
     } catch (err) {
         console.error("Failed to fetch preset weights", err);
@@ -567,7 +649,7 @@ function createTeamLine(region, round, teamName, seed, isWinner, prob, isActual 
     const team = teamName || "TBD";
     const userLocked = isLocked(region, round, team);
     const lockedClass = (userLocked || isActual) ? 'locked' : '';
-    line.className = `team-line ${isWinner ? 'winner' : ''} ${lockedClass} ${team === "TBD" ? 'tbd' : ''}`;
+    line.className = `team-line ${isWinner ? 'winner' : ''} ${lockedClass} ${team === "TBD" ? 'tbd' : ''} ${isActual ? 'actual-result' : ''}`;
     
     const cleanName = team.replace(/^\d+\s+/, '');
     line.innerHTML = `
@@ -682,8 +764,13 @@ function openMatchupModal(matchup) {
         const underdog = blendedA > 0.5 ? teamB : teamA;
         const confText = favorite.is_power_conf ? "power conference powerhouse" : "disciplined contender";
         
+        let targetDescriptor = "";
+        if (appState.mode === 'balanced') {
+            targetDescriptor = "Optimal Mix of Consistency and Ceiling. ";
+        }
+
         whyContent.innerHTML = `
-            <p><strong>Scenario Intelligence:</strong> ${favorite.name} enters as the statistical favorite with a ${confText} profile. 
+            <p><strong>Scenario Intelligence:</strong> ${targetDescriptor}${favorite.name} enters as the statistical favorite with a ${confText} profile. 
             The simulation indicates a ${ (Math.abs(blendedA - 0.5) * 200).toFixed(2) }% efficiency advantage in our multi-era regression model.</p>
             <p style="margin-top:0.5rem"><strong>Key Factor:</strong> Verticality and tempo control. ${teamA.name}'s efficiency at ${teamA.off_efficiency?.toFixed(1) || 'N/A'} vs ${teamB.name}'s ${teamB.off_efficiency?.toFixed(1) || 'N/A'} is the primary driver of this projection.</p>
         `;
@@ -774,6 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (appState.mode === 'average') applyWeights(appState.optimalWeights);
             else if (appState.mode === 'perfect') applyWeights(appState.perfectWeights);
+            else if (appState.mode === 'balanced') applyWeights(appState.balancedWeights);
             
             renderMMBracket();
         });
@@ -831,9 +919,10 @@ async function syncStartRound(round) {
             const response = await fetch(`/api/sync/live?year=${appState.year}`, { method: 'POST' });
             const data = await response.json();
             alert(data.message || data.error);
-            appState.mode = 'standard';
+            appState.mode = 'current';  // Inject synced live data directly into simulated path
             await fetchTeams(appState.year);
-            renderMMBracket(); 
+            const runBtn = document.getElementById('run-simulation-btn');
+            if (runBtn) runBtn.click(); // Trigger full recalculation incorporating the new real data
         } catch (err) {
             console.error(err);
             alert("Failed to sync live bracket.");

@@ -51,7 +51,7 @@ def simulate_region(region_name, seeds_map, teams_data, engine):
         next_round_teams = []
         
         # Process teams in pairs
-        for i in range(0, len(current_round_teams), 2):
+        for i in range(0, len(current_round_teams) - 1, 2):
             team_a = current_round_teams[i]
             team_b = current_round_teams[i+1]
             

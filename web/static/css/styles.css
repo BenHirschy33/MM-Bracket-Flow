@@ -510,6 +510,17 @@
     text-shadow: 0 0 10px var(--accent-gold);
 }
 
+.team-line.actual-result {
+    background: linear-gradient(90deg, rgba(255, 107, 0, 0.2), transparent) !important;
+    border-left: 3px solid var(--accent-orange) !important;
+    box-shadow: 0 0 20px var(--accent-orange-glow) !important;
+}
+
+.team-line.locked .lock-icon.is-actual {
+    color: var(--accent-orange);
+    text-shadow: 0 0 10px var(--accent-orange);
+}
+
 
 /* All Regions Flow Left-to-Right */
 .region-block .rounds-flex {

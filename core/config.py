@@ -140,6 +140,12 @@ class SimulationWeights:
     tempo_upset_weight: float = 0.5723
     fatigue_sensitivity: float = 0.1214
     bench_rest_bonus: float = 0.2261
+    
+    # --- Advanced Modern Metrics ---
+    sq_margin_weight: float = 1.2500       # Weight for Adj SQ Margin
+    rim_3_volatility_weight: float = 0.4500 # Weight for Rim-and-3 variance scaling
+    kill_shot_momentum_weight: float = 0.8500 # Weight for Kill Shot differential
+    
     chaos_mode: bool = True
 
     def to_dict(self):
@@ -156,3 +162,6 @@ class SimulationWeights:
 # Default configuration derived from Gold Standard optimization iteration 1436.
 # Achieving: Avg ESPN Score=327.8 across 24 historical years (2000-2024).
 DEFAULT_WEIGHTS = SimulationWeights()
+
+# Fallback for balanced optimization mode
+BALANCED_WEIGHTS = SimulationWeights()
