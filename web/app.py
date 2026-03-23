@@ -11,9 +11,38 @@ import json
 
 from core.parser import load_teams, load_bracket
 from core.simulator import SimulatorEngine
-from core.team_model import Team
 from core.config import DEFAULT_WEIGHTS, SimulationWeights
 
+import threading
+import time
+import os
+import signal
+
+# --- Lifecycle Management ---
+LAST_REQUEST_TIME = time.time()
+
+def inactivity_monitor():
+    """Shuts down the server if no requests are received for 5 minutes."""
+    global LAST_REQUEST_TIME
+    while True:
+        time.sleep(30) # Check every 30 seconds
+        if time.time() - LAST_REQUEST_TIME > 300: # 5 minutes
+            print("\n[LIFECYCLE] Inactivity timeout reached (5 mins). Shutting down...")
+            os.kill(os.getpid(), signal.SIGINT)
+            break
+
+def kill_process_on_port(port):
+    """Kills any process currently listening on the specified port."""
+    try:
+        import subprocess
+        result = subprocess.check_output(["lsof", "-t", f"-i:{port}"], stderr=subprocess.STDOUT)
+        pids = result.decode().strip().split("\n")
+        for pid in pids:
+            if pid:
+                os.kill(int(pid), signal.SIGKILL)
+                print(f"[STARTUP] Killed existing process {pid} on port {port}")
+    except (subprocess.CalledProcessError, Exception):
+        pass # No process found on port
 app = Flask(__name__)
 CORS(app)
 
@@ -21,12 +50,17 @@ CORS(app)
 def index():
     return render_template('index.html')
 
+@app.before_request
+def update_activity():
+    global LAST_REQUEST_TIME
+    LAST_REQUEST_TIME = time.time()
+
 def extract_weights(data):
     """Robustly extracts weights from request data, handling hyphens and underscores."""
     from core.config import SimulationWeights
     weights_base = SimulationWeights()
     w_dict = weights_base.to_dict()
-    
+
     # Map frontend keys (handling underscores/hyphens and common aliases)
     mapping = {
         'efficiency': 'efficiency_weight',
@@ -51,20 +85,20 @@ def extract_weights(data):
         # Strip 'weight-' or 'num-' if present
         clean_key = key.replace('weight-', '').replace('num-', '').replace('-', '_')
         field_name = mapping.get(clean_key, clean_key)
-        
+
         if field_name in w_dict:
             try:
                 w_dict[field_name] = float(val)
             except (ValueError, TypeError):
                 pass
-                
+
     return SimulationWeights(**w_dict)
 @app.route('/api/teams/<int:year>')
 def get_teams(year):
     try:
         base_dir = Path(f"years/{year}/data")
         teams = load_teams(base_dir / "team_stats.csv", year=year)
-        
+
         # Merge seeds from bracket
         try:
             bracket = load_bracket(base_dir / "chalk_bracket.json")
@@ -73,7 +107,7 @@ def get_teams(year):
                 for s_str, name in seeds.items():
                     # Extract numeric seed
                     seeds_by_name[name] = int(''.join(c for c in s_str if c.isdigit()))
-            
+
             for name, t in teams.items():
                 if name in seeds_by_name:
                     t.seed = seeds_by_name[name]
@@ -142,14 +176,14 @@ def get_preset_weights():
         try:
             with open(gold_path) as f:
                 gold = _json.load(f)
-            
+
             if mode == "avg":
                 key = "max_avg"
             elif mode == "balanced":
                 key = "max_balanced"
             else:
                 key = "max_champion"
-                
+
             weights_dict = gold[key]["weights"]
             meta = gold[key].get("meta", {})
             return jsonify({"mode": mode, "meta": meta, "weights": weights_dict})
@@ -169,7 +203,7 @@ def get_preset_weights():
 def sync_start_round():
     round_name = request.args.get('round', 'r64')
     year = int(request.args.get('year', 2026))
-    
+
     # Path to actual results
     path = f"years/{year}/data/actual_results.json"
     results = {
@@ -181,7 +215,7 @@ def sync_start_round():
     }
 
     valid_rounds = {
-        'r64': [], 
+        'r64': [],
         'r32': ["round_of_32"],
         'r16': ["round_of_32", "sweet_sixteen"],
         'r8': ["round_of_32", "sweet_sixteen", "elite_eight"],
@@ -199,20 +233,20 @@ def sync_start_round():
 
     from scripts.sync_live_data import sync_live_data
     sync_live_data(year)
-    
+
     with open(path, 'r') as f:
         content = f.read().strip()
         current = json.loads(content) if content else results
 
     allowed_keys = valid_rounds[round_name]
     highest_key = allowed_keys[-1]
-    
+
     count = len(current.get(highest_key, [])) if highest_key != 'champion' else (1 if current.get('champion') else 0)
-    
+
     if count == 0:
         friendly_name = highest_key.replace('_', ' ').title()
         return jsonify({"error": f"No {friendly_name} winners found for {year} yet. (Data pending or round not reached).", "count": 0}), 400
-        
+
     for k in results.keys():
         if k not in allowed_keys:
             if k == 'champion':
@@ -234,7 +268,7 @@ def get_bracket(year):
         base_dir = Path(f"years/{year}/data")
         bracket_data = load_bracket(base_dir / "chalk_bracket.json")
         SEED_MATCHUPS = [(1, 16), (8, 9), (5, 12), (4, 13), (6, 11), (3, 14), (7, 10), (2, 15)]
-        
+
         actual_results = {}
         results_path = base_dir / "actual_results.json"
         if results_path.exists():
@@ -245,32 +279,142 @@ def get_bracket(year):
             except Exception:
                 pass
 
-        bracket_res = {"regions": {}}
-        ff_winners = actual_results.get("round_of_32", []) # round_of_32 winners are what we see first
-        
-        for region_name, seeds_map in bracket_data.get("regions", {}).items():
-            matchups = []
-            for high_seed, low_seed in SEED_MATCHUPS:
-                # Check for play-in seeds (e.g. 16a, 11a)
-                ht_name = seeds_map.get(str(high_seed)) or seeds_map.get(f"{high_seed}a")
-                lt_name = seeds_map.get(str(low_seed)) or seeds_map.get(f"{low_seed}a")
-                
+        from core.parser import normalize_team_name
+        bracket_res = {"regions": {}, "final_four": [], "championship": None}
+
+        # Round-to-key mapping for specific actual_results inspection
+        ROUND_KEYS = {
+            1: "round_of_32",
+            2: "sweet_sixteen",
+            3: "elite_eight",
+            4: "final_four",
+            5: "final_four", # FF games
+            6: "champion"
+        }
+
+        # Normalize all winners by round for fast lookup
+        normalized_results = {}
+        if isinstance(actual_results, dict):
+            for r_key, winners in actual_results.items():
+                if isinstance(winners, list):
+                    normalized_results[r_key] = [normalize_team_name(w) for w in winners if w]
+                elif isinstance(winners, str) and winners:
+                    normalized_results[r_key] = [normalize_team_name(winners)]
+
+        def build_next_round(prev_matchups, round_num):
+            next_matchups = []
+            r_key = ROUND_KEYS.get(round_num)
+            round_winners = normalized_results.get(r_key, [])
+
+            for i in range(0, len(prev_matchups), 2):
+                m1 = prev_matchups[i]
+                m2 = prev_matchups[i+1]
+
+                # Participants are winners of previous round actual games
+                team_a = m1.get("winner") if m1.get("is_actual") else None
+                team_b = m2.get("winner") if m2.get("is_actual") else None
+
+                # If participants aren't confirmed, they are TBD
+                # Seeds should also only be provided if we have a team
+                seed_a = (m1.get("seed_a") if team_a == m1.get("team_a") else m1.get("seed_b")) if team_a else None
+                seed_b = (m2.get("seed_a") if team_b == m2.get("team_a") else m2.get("seed_b")) if team_b else None
+
                 winner = None
                 is_actual = False
-                if ht_name in ff_winners:
+
+                if team_a and team_b:
+                    norm_a = normalize_team_name(team_a)
+                    norm_b = normalize_team_name(team_b)
+                    if norm_a in round_winners:
+                        winner = team_a
+                        is_actual = True
+                    elif norm_b in round_winners:
+                        winner = team_b
+                        is_actual = True
+
+                next_matchups.append({
+                    "team_a": team_a or "TBD", "seed_a": seed_a,
+                    "team_b": team_b or "TBD", "seed_b": seed_b,
+                    "winner": winner, "is_actual": is_actual
+                })
+            return next_matchups
+
+        region_winners = {}
+        for region_name, seeds_map in bracket_data.get("regions", {}).items():
+            r1_winners = normalized_results.get("round_of_32", [])
+            r1_matchups = []
+            for high_seed, low_seed in SEED_MATCHUPS:
+                ht_name = seeds_map.get(str(high_seed)) or seeds_map.get(f"{high_seed}a")
+                lt_name = seeds_map.get(str(low_seed)) or seeds_map.get(f"{low_seed}a")
+
+                winner = None
+                is_actual = False
+                norm_ht = normalize_team_name(ht_name)
+                norm_lt = normalize_team_name(lt_name)
+
+                if norm_ht in r1_winners:
                     winner = ht_name
                     is_actual = True
-                elif lt_name in ff_winners:
+                elif norm_lt in r1_winners:
                     winner = lt_name
                     is_actual = True
 
-                matchups.append({
+                r1_matchups.append({
                     "team_a": ht_name or "TBD", "seed_a": high_seed,
                     "team_b": lt_name or "TBD", "seed_b": low_seed,
                     "winner": winner, "is_actual": is_actual
                 })
-            bracket_res["regions"][region_name] = matchups
-            
+
+            r2_matchups = build_next_round(r1_matchups, 2)
+            r3_matchups = build_next_round(r2_matchups, 3)
+            r4_matchups = build_next_round(r3_matchups, 4)
+
+            bracket_res["regions"][region_name] = [
+                {"round": 1, "matchups": r1_matchups},
+                {"round": 2, "matchups": r2_matchups},
+                {"round": 3, "matchups": r3_matchups},
+                {"round": 4, "matchups": r4_matchups}
+            ]
+
+            # Extract region winner (Elite Eight winner)
+            region_winners[region_name] = r4_matchups[0].get("winner") if r4_matchups[0].get("is_actual") else "TBD"
+
+        # Build Final Four and Championship from region winners (Standard Order)
+        order = ["East", "West", "South", "Midwest"]
+        ff_teams = [region_winners.get(r, "TBD") for r in order]
+
+        # Build FF matchups (Round 5)
+        ff_results = normalized_results.get("final_four", [])
+        ff_matchups = []
+        for i in range(0, 4, 2):
+            ta = ff_teams[i]
+            tb = ff_teams[i+1]
+            winner = None
+            is_actual = False
+
+            if ta != "TBD" and tb != "TBD":
+                if normalize_team_name(ta) in ff_results:
+                    winner, is_actual = ta, True
+                elif normalize_team_name(tb) in ff_results:
+                    winner, is_actual = tb, True
+
+            ff_matchups.append({"team_a": ta, "team_b": tb, "winner": winner, "is_actual": is_actual})
+
+        bracket_res["final_four"] = ff_matchups
+
+        # Build Championship (Round 6)
+        champ_winner_list = normalized_results.get("champion", [])
+        champ_winner = champ_winner_list[0] if champ_winner_list else None
+        cta = ff_matchups[0].get("winner") if ff_matchups[0].get("is_actual") else "TBD"
+        ctb = ff_matchups[1].get("winner") if ff_matchups[1].get("is_actual") else "TBD"
+        winner = None
+        is_actual = False
+        if champ_winner and cta != "TBD" and ctb != "TBD":
+            if normalize_team_name(cta) == champ_winner: winner, is_actual = cta, True
+            elif normalize_team_name(ctb) == champ_winner: winner, is_actual = ctb, True
+
+        bracket_res["championship"] = {"team_a": cta, "team_b": ctb, "winner": winner, "is_actual": is_actual}
+
         return jsonify(bracket_res)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -282,20 +426,21 @@ def simulate_matchup():
     team_a_name = data.get('team_a')
     team_b_name = data.get('team_b')
     weights_data = data.get('weights', {})
-    
+
     try:
         base_dir = Path(f"years/{year}/data")
         teams = load_teams(base_dir / "team_stats.csv", year=year)
         team_a = teams.get(team_a_name)
         team_b = teams.get(team_b_name)
-        
+
         if not team_a or not team_b:
             return jsonify({"error": "Team not found"}), 404
-            
+
         custom_weights = extract_weights(weights_data)
         engine = SimulatorEngine(teams=teams, weights=custom_weights)
+        engine.volatility = float(data.get('volatility', 0.0))
         prob_a = engine.calculate_win_probability(team_a, team_b)
-        
+
         if (team_a.name == "UCLA" and team_b.name == "UCF") or (team_b.name == "UCLA" and team_a.name == "UCF"):
             import logging
             logging.info(f"MATCHUP DEBUG: {team_a.name} ({team_a.seed}) vs {team_b.name} ({team_b.seed})")
@@ -306,12 +451,12 @@ def simulate_matchup():
             logging.info(f"  SOS A: {team_a.sos}, SOS B: {team_b.sos}")
             logging.info(f"  Result Prob A: {prob_a:.4f}")
         winner = team_a if prob_a >= 0.5 else team_b
-        
+
         return jsonify({
             "winner": winner.name,
             "probability": prob_a,
             "team_a": team_a_name,
-            "team_b": team_b_name 
+            "team_b": team_b_name
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -324,7 +469,7 @@ def get_matchup_detail():
         # Robustly collect all GET params
         data = request.args.to_dict()
         if 'year' in data: data['year'] = int(data['year'])
-        
+
     year = data.get('year', 2026)
     team_a_name = data.get('team_a')
     team_b_name = data.get('team_b')
@@ -333,7 +478,7 @@ def get_matchup_detail():
     try:
         base_dir = Path(f"years/{year}/data")
         teams = load_teams(base_dir / "team_stats.csv", year=year)
-        
+
         # Synchronize seeds from bracket
         bracket = load_bracket(base_dir / "chalk_bracket.json")
         seeds_by_name = {}
@@ -343,21 +488,22 @@ def get_matchup_detail():
 
         t_a = teams.get(team_a_name)
         t_b = teams.get(team_b_name)
-        
+
         if t_a and t_a.name in seeds_by_name:
             t_a.seed = seeds_by_name[t_a.name]
         if t_b and t_b.name in seeds_by_name:
             t_b.seed = seeds_by_name[t_b.name]
-        
+
         if not t_a or not t_b:
             return jsonify({"error": "Team not found"}), 404
-            
+
         custom_weights = extract_weights(weights_data)
         engine = SimulatorEngine(teams=teams, weights=custom_weights)
+        engine.volatility = float(data.get('volatility', 0.0))
         prob_a = engine.calculate_win_probability(t_a, t_b)
         # Generate dynamic "Why" analysis
         analysis = []
-        
+
         # SOS Check
         sos_diff = (t_a.sos or 0) - (t_b.sos or 0)
         if abs(sos_diff) > 2.0:
@@ -366,7 +512,7 @@ def get_matchup_detail():
                 "importance": "High",
                 "description": f"{t_a.name if sos_diff > 0 else t_b.name} has been battle-tested against a tougher schedule (+{abs(sos_diff):.1f} SOS)."
             })
-            
+
         # Overall Efficiency Check
         eff_a = (t_a.off_efficiency or 100) - (t_a.def_efficiency or 100)
         eff_b = (t_b.off_efficiency or 100) - (t_b.def_efficiency or 100)
@@ -499,24 +645,25 @@ def run_full_sim():
         locks = data.get('locks', {})
         volatility = data.get('volatility', 0.0)
         use_live_results = data.get('use_live_results', False)
-        
+
         custom_weights = extract_weights(weights_data)
     else:
         year = request.args.get('year', default=2026, type=int)
         mode = request.args.get('mode', default='deterministic')
         use_live_results = request.args.get('use_live', default='false').lower() == 'true'
         locks = {}
-        
+        volatility = request.args.get('volatility', default=0.0, type=float)
+
         # Parse weights from query params (e.g., ?sos=7.5&trb=4.2)
         custom_weights = extract_weights(request.args)
-    
+
     SEED_MATCHUPS = [(1, 16), (8, 9), (5, 12), (4, 13), (6, 11), (3, 14), (7, 10), (2, 15)]
-    
+
     try:
         base_dir = Path(f"years/{year}/data")
         teams_data = load_teams(base_dir / "team_stats.csv", year=year)
         bracket_data = load_bracket(base_dir / "chalk_bracket.json")
-        
+
         # Load actual results if they exist (for historical years)
         results_path = base_dir / "actual_results.json"
         actual_results = {}
@@ -528,28 +675,38 @@ def run_full_sim():
             except Exception:
                 actual_results = {}
 
-        engine = SimulatorEngine(teams=teams_data, weights=custom_weights, actual_results=actual_results if use_live_results else None)
-        engine.volatility = volatility # Inject volatility
-        
+        # Flatten nested locks for SimulatorEngine
+        flat_locks = {}
+        if isinstance(locks, dict):
+            for reg, rounds in locks.get('regions', {}).items():
+                for rnd_num, teams in rounds.items():
+                    for t_name, is_locked in teams.items():
+                        if is_locked:
+                            # Format as 'round|TeamName' for SimulatorEngine
+                            flat_locks[f"{rnd_num}|{t_name}"] = t_name
+
+        engine = SimulatorEngine(teams=teams_data, weights=custom_weights, locks=flat_locks, actual_results=actual_results if use_live_results else None)
+        engine.volatility = float(volatility)
+
         sim_trace = {
             "regions": {},
             "final_four": [],
             "championship": None,
             "winner": None
         }
-        
+
         # Collect regional winners by name for explicit pairing
         winners_by_region = {}
-        regions_ordered = ['East', 'South', 'West', 'Midwest'] # Match main.js order
-        
+        regions_ordered = ['East', 'West', 'South', 'Midwest'] # Match main.js order
+
         for region_name in regions_ordered:
             if region_name not in bracket_data.get("regions", {}):
                 continue
-            
+
             seeds_map = bracket_data["regions"][region_name]
             region_trace = []
             current_round_teams = []
-            
+
             # Round 1 Setup
             for high_seed, low_seed in SEED_MATCHUPS:
                 def get_team_from_seed(seed_str):
@@ -560,14 +717,14 @@ def run_full_sim():
 
                 ht_name = get_team_from_seed(str(high_seed))
                 lt_name = get_team_from_seed(str(low_seed))
-                
+
                 ht = teams_data.get(ht_name)
                 lt = teams_data.get(lt_name)
-                
+
                 if not ht:
                     ht = Team(name=ht_name or f"TBD ({high_seed})", seed=int(high_seed), off_efficiency=100.0, def_efficiency=100.0, off_ppg=70.0, def_ppg=70.0)
                 else: ht.seed = int(high_seed)
-                
+
                 if not lt:
                     lt = Team(name=lt_name or f"TBD ({low_seed})", seed=int(low_seed), off_efficiency=100.0, def_efficiency=100.0, off_ppg=70.0, def_ppg=70.0)
                 else: lt.seed = int(low_seed)
@@ -579,21 +736,9 @@ def run_full_sim():
             while len(current_round_teams) > 1:
                 next_round = []
                 matchups = []
-                region_locks = locks.get('regions', {}).get(region_name, {}).get(str(round_idx), {})
-                historical_winners = actual_results.get(round_names.get(round_idx, ""), [])
-
                 for i in range(0, len(current_round_teams) - 1, 2):
                     t_a = current_round_teams[i]
                     t_b = current_round_teams[i+1]
-                    prob_a = 0.5
-                    
-                    # LOGGING ANOMALY DEBUG
-                    if t_a and t_b and ((t_a.name == "UCLA" and t_b.name == "UCF") or (t_b.name == "UCLA" and t_a.name == "UCF")):
-                        # (Will re-calculate prob_a inside if t_a and t_b block below)
-                        pass
-                    
-                    def normalize(name):
-                        return "".join(filter(str.isalnum, name.lower()))
 
                     if not t_a or not t_b:
                         prob_a = 0.5
@@ -603,57 +748,49 @@ def run_full_sim():
                         if mode == 'current' and not use_live_results:
                             winner = None
                         else:
-                            # SimulatorEngine now handles is_actual / locks internally
                             winner = engine.simulate_game(t_a, t_b, mode=mode, round_num=round_idx)
-                    
+
                     is_actual = False
                     if winner and use_live_results:
-                         historical_winners = actual_results.get(round_names.get(round_idx, ""), [])
-                         if winner.name in historical_winners:
-                             is_actual = True
-                        
+                        historical_winners = actual_results.get(round_names.get(round_idx, ""), [])
+                        if winner.name in historical_winners:
+                            is_actual = True
+
                     next_round.append(winner)
                     matchups.append({
-                        "team_a": t_a.name if t_a else "TBD", 
-                        "seed_a": t_a.seed if t_a else None, 
-                        "team_b": t_b.name if t_b else "TBD", 
-                        "seed_b": t_b.seed if t_b else None, 
-                        "winner": winner.name if winner else None, 
+                        "team_a": t_a.name if t_a else "TBD",
+                        "seed_a": t_a.seed if t_a else None,
+                        "team_b": t_b.name if t_b else "TBD",
+                        "seed_b": t_b.seed if t_b else None,
+                        "winner": winner.name if winner else None,
                         "probability": prob_a if winner else None,
                         "is_actual": is_actual
                     })
-                
+
                 region_trace.append({"round": round_idx, "matchups": matchups})
                 current_round_teams = next_round
                 round_idx += 1
-                
+
             sim_trace["regions"][region_name] = region_trace
             winners_by_region[region_name] = current_round_teams[0] if current_round_teams else None
 
         # Final Four (Explicit Pairings)
-        # Semi 1: East vs South
         e_win = winners_by_region.get('East')
         s_win = winners_by_region.get('South')
-        # Semi 2: West vs Midwest
         w_win = winners_by_region.get('West')
         m_win = winners_by_region.get('Midwest')
-        
-        # Fallback for missing regions (Only if not in Current mode or if teams were missing from the start)
-        dummy_team = list(teams_data.values())[0] if teams_data else None
+
         if mode != 'current':
+            dummy_team = list(teams_data.values())[0] if teams_data else None
             e_win = e_win or dummy_team
             s_win = s_win or dummy_team
             w_win = w_win or dummy_team
             m_win = m_win or dummy_team
 
-        ff_winners = actual_results.get("final_four", [])
-        champ_winner = actual_results.get("champion")
-        ff_locks = locks.get('final_four', {})
-        
         # Semi 1 Simulation
         prob_ff1 = 0.5
         if mode == 'current' and not use_live_results: ff_1 = None
-        else: 
+        else:
             if e_win and s_win:
                 prob_ff1 = engine.calculate_win_probability(e_win, s_win, round_num=5)
                 ff_1 = engine.simulate_game(e_win, s_win, mode=mode, round_num=5)
@@ -667,16 +804,16 @@ def run_full_sim():
                 prob_ff2 = engine.calculate_win_probability(w_win, m_win, round_num=5)
                 ff_2 = engine.simulate_game(w_win, m_win, mode=mode, round_num=5)
             else: ff_2 = None
-        
+
         ff_winners = actual_results.get("final_four", [])
         ff_1_actual = use_live_results and ff_1 and ff_1.name in ff_winners
         ff_2_actual = use_live_results and ff_2 and ff_2.name in ff_winners
-        
+
         sim_trace["final_four"] = [
             {"team_a": e_win.name if e_win else "TBD", "seed_a": e_win.seed if e_win else None, "team_b": s_win.name if s_win else "TBD", "seed_b": s_win.seed if s_win else None, "winner": ff_1.name if ff_1 else None, "probability": prob_ff1 if ff_1 else None, "is_actual": ff_1_actual},
             {"team_a": w_win.name if w_win else "TBD", "seed_a": w_win.seed if w_win else None, "team_b": m_win.name if m_win else "TBD", "seed_b": m_win.seed if m_win else None, "winner": ff_2.name if ff_2 else None, "probability": prob_ff2 if ff_2 else None, "is_actual": ff_2_actual}
         ]
-        
+
         # Championship
         prob_champ = 0.5
         if mode == 'current' and not use_live_results: champ = None
@@ -685,13 +822,13 @@ def run_full_sim():
                 prob_champ = engine.calculate_win_probability(ff_1, ff_2, round_num=6)
                 champ = engine.simulate_game(ff_1, ff_2, mode=mode, round_num=6)
             else: champ = None
-        
+
         champ_winner = actual_results.get("champion")
         champ_actual = use_live_results and champ and champ.name == champ_winner
-            
+
         sim_trace["championship"] = {"team_a": ff_1.name if ff_1 else "TBD", "seed_a": ff_1.seed if ff_1 else None, "team_b": ff_2.name if ff_2 else "TBD", "seed_b": ff_2.seed if ff_2 else None, "winner": champ.name if champ else None, "probability": prob_champ if champ else None, "is_actual": champ_actual}
         sim_trace["winner"] = champ.name if champ else None
-        
+
         return jsonify(sim_trace)
     except Exception as e:
         import traceback
@@ -713,15 +850,13 @@ def sync_live_results():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    import os, signal, subprocess
-    try:
-        pids = subprocess.check_output(['lsof', '-t', '-i:5001']).decode().strip().split('\n')
-        for pid_str in pids:
-            if pid_str:
-                pid = int(pid_str)
-                if pid != os.getpid():
-                    os.kill(pid, signal.SIGKILL)
-                    print(f"Killed existing process {pid} on port 5001")
-    except Exception:
-        pass
-    app.run(debug=True, port=5001)
+    # 1. Kill any existing process on port 5001
+    kill_process_on_port(5001)
+    
+    # 2. Start inactivity monitor thread
+    monitor_thread = threading.Thread(target=inactivity_monitor, daemon=True)
+    monitor_thread.start()
+    
+    print("[STARTUP] Server starting on http://localhost:5001")
+    print("[STARTUP] Inactivity timeout enabled (5 minutes)")
+    app.run(debug=True, port=5001, use_reloader=False)

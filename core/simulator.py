@@ -23,44 +23,84 @@ class SimulatorEngine:
         self.upset_count = 0
         self.total_games = 0
 
-    def get_locked_winner(self, team_a_name: str, team_b_name: str, round_num: int) -> Optional[str]:
-        """Checks both explicit matchup locks and live actual results."""
-        # 1. Check explicit Matchup Locks
+    def get_locked_winner(self, team_a_name: str, team_b_name: str, round_num: int = 1) -> Optional[str]:
+        """Returns the winner if a game is forced by Actual Results or Manual Locks."""
+        
+        # 1. Check for Actual Results (Ground Truth - highest priority)
+        if self.actual_results:
+            from core.parser import normalize_team_name
+            round_key = self._get_round_key(round_num)
+            winners = self.actual_results.get(round_key, [])
+            if isinstance(winners, str): winners = [winners]
+            
+            norm_a = normalize_team_name(team_a_name)
+            norm_b = normalize_team_name(team_b_name)
+            
+            for w in winners:
+                norm_w = normalize_team_name(w)
+                if norm_a == norm_w: return team_a_name
+                if norm_b == norm_w: return team_b_name
+
+        # 2. Check Matchup-Specific Locks (e.g., 'Duke vs Siena')
         lock_key1 = f"{team_a_name} vs {team_b_name}"
         lock_key2 = f"{team_b_name} vs {team_a_name}"
         if lock_key1 in self.locks: return self.locks[lock_key1]
         if lock_key2 in self.locks: return self.locks[lock_key2]
 
-        # 2. Check Actual Results (Live Sync)
-        round_map = {1: "round_of_32", 2: "sweet_sixteen", 3: "elite_eight", 4: "final_four", 6: "champion"}
-        round_key = round_map.get(round_num)
-        if round_key and self.actual_results:
-            historical_winners = self.actual_results.get(round_key, [])
-            if isinstance(historical_winners, list):
-                if team_a_name in historical_winners: return team_a_name
-                if team_b_name in historical_winners: return team_b_name
-            elif isinstance(historical_winners, str) and historical_winners: # For 'champion'
-                if team_a_name == historical_winners: return team_a_name
-                if team_b_name == historical_winners: return team_b_name
+        # 3. Check Manual Locks (Round-Aware) - Format: '1|TeamName'
+        lock_key_a = f"{round_num}|{team_a_name}"
+        lock_key_b = f"{round_num}|{team_b_name}"
         
+        if lock_key_a in self.locks: return team_a_name
+        if lock_key_b in self.locks: return team_b_name
+            
+        # 4. Fallback for legacy flat locks (only if no pipe is present in any lock key)
+        # This prevents accidental "always win" state if ANY round-aware lock is used.
+        if not any("|" in str(k) for k in self.locks):
+            if team_a_name in self.locks: return team_a_name
+            if team_b_name in self.locks: return team_b_name
+
         return None
+
+    def _get_round_key(self, round_num):
+        """Maps numeric round to actual_results.json keys."""
+        mapping = {
+            1: "round_of_32",
+            2: "sweet_sixteen",
+            3: "elite_eight",
+            4: "final_four",
+            5: "final_four",
+            6: "champion"
+        }
+        return mapping.get(round_num, "round_of_32")
 
     def simulate_game(self, team_a: Team, team_b: Team, mode: str = "deterministic", round_num: int = 1) -> Team:
         """Simulates a game and returns the winner, incorporating Volatility Index and Locks."""
-        # Check for Locks first
+        # 1. Check for Locks / Actual Results first
         locked_winner_name = self.get_locked_winner(team_a.name, team_b.name, round_num)
         if locked_winner_name:
-            return team_a if team_a.name == locked_winner_name else team_b
+            winner = team_a if team_a.name == locked_winner_name else team_b
+            print(f"[LOCK] {team_a.name} vs {team_b.name} -> {winner.name} (Forced)")
+            return winner
 
-        prob_a = self.calculate_win_probability(team_a, team_b, round_num)
-        
-        # Apply Volatility Index blending
-        blended_prob = ((1.0 - self.volatility) * prob_a) + (self.volatility * 0.5)
-        
+        # 2. Logic Selection
         if mode == "deterministic":
-            return team_a if blended_prob >= 0.5 else team_b
+            # Always pick the statistical favorite
+            prob_a = self.calculate_win_probability(team_a, team_b, round_num)
+            winner = team_a if prob_a >= 0.5 else team_b
+            print(f"[CHALK] {team_a.name} vs {team_b.name} -> {winner.name} (Prob: {prob_a:.3f})")
+            return winner
         else:
-            return team_a if random.random() < blended_prob else team_b
+            # 3. Probabilistic: Use the high-fidelity segment resolution loop
+            # This ensures 'Run Simulation' uses the same logic as the individual game view
+            winner_name = self.simulate_matchup(team_a.name, team_b.name, round_num)
+            winner = team_a if team_a.name == winner_name else team_b
+            
+            # Show the Edge in the logs for transparency
+            prob_a = self.calculate_win_probability(team_a, team_b, round_num)
+            edge = prob_a if winner.name == team_a.name else (1.0 - prob_a)
+            print(f"[SIM] {team_a.name} vs {team_b.name} -> {winner.name} (Edge: {edge:.3f})")
+            return winner
 
     def _get_metric(self, team, attr, default=0.0):
         """Safely gets a numeric metric from a team object, defaulting if None."""
@@ -137,7 +177,10 @@ class SimulatorEngine:
 
         # Era-Specific Scaling & 2025 Indicators
         year = team_a.year or 2024
-        if year <= 2010: delta += (def_b - def_a) * 0.02 * self.weights.defensive_grit_bias
+        if year <= 2010: 
+            def_a = self._get_metric(team_a, 'def_efficiency', 100.0)
+            def_b = self._get_metric(team_b, 'def_efficiency', 100.0)
+            delta += (def_b - def_a) * 0.02 * self.weights.defensive_grit_bias
         if year >= 2015: delta += (self._get_metric(team_a, 'three_par', 0.35) - self._get_metric(team_b, 'three_par', 0.35)) * 1.5 * self.weights.three_point_dominance
         
         # 2025 Specific Rules (v2025_indicators.json)
@@ -191,14 +234,16 @@ class SimulatorEngine:
             variance_multiplier = 1.0 + (avg_rim_3 * 2.0 * self.weights.rim_3_volatility_weight)
             
             variance_scale = (1.0 + (self.volatility * 2.0)) * variance_multiplier
-            final_probability = 1.0 / (1.0 + math.exp(-delta / variance_scale))
+            raw_prob = 1.0 / (1.0 + math.exp(-delta / variance_scale))
         except OverflowError:
-            final_probability = 1.0 if delta > 0 else 0.0
+            raw_prob = 1.0 if delta > 0 else 0.0
+
+        # Phase 3.6: Unified Volatility Blending (Linear)
+        # Higher volatility pulls any probability towards 50/50
+        blended_prob = ((1.0 - self.volatility) * raw_prob) + (self.volatility * 0.5)
 
         # Clamp to valid probability bounds [0.001, 0.999] for Log-Likelihood stability
-        final_probability = max(0.001, min(0.999, final_probability))
-        
-        return final_probability
+        return max(0.001, min(0.999, blended_prob))
 
     def simulate_matchup(self, team_a_name: str, team_b_name: str, round_num: int = 1) -> str:
         """
@@ -260,13 +305,13 @@ class SimulatorEngine:
             # (Roughly: possessions * points per possession ~ scoring)
             # We use the probability to determine who 'wins' the segment points
             seg_winner_a = (random.random() < seg_prob)
-            pts = (poss_per_segment * 1.1) + random.uniform(-5, 5) # NCAA avg PPP is ~1.0-1.1
+            pts = (poss_per_segment * 1.1) + random.uniform(-5, 5) 
             if seg_winner_a:
                 score_a += pts
-                score_b += (pts * 0.9) # Loser stays close in segment
+                score_b += (pts * 0.7) # Favorites dominate scoring depth
             else:
                 score_b += pts
-                score_a += (pts * 0.9)
+                score_a += (pts * 0.7)
         
         # 5. Late-Game Free Throw Floor (Phase 3.3.2)
         if abs(score_a - score_b) < 5:

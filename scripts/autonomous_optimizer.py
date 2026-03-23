@@ -100,8 +100,8 @@ def run_mode_loop(mode, stop_event):
             # 1. Load 2025 Adjustments
             adjustments = get_v2025_adjustments()
             
-            # 2. Deep research iterations
-            iterations = 100000 
+            # 2. Sweep iterations (Optimal frequency for adaptive controller)
+            iterations = 25000 
             logging.info(f"[{mode.upper()}] Starting sweep ({iterations} iterations, Jitter={jitter_scale:.2f})...")
             
             # Use --workers 3 to manage 11-core load (3 modes * 3 workers = 9 + overhead)
@@ -124,6 +124,8 @@ def run_mode_loop(mode, stop_event):
                 line_str = line.strip()
                 if "BEST" in line_str.upper() or "GLOBAL" in line_str.upper():
                     logging.info(f"[{mode.upper()}] {line_str}")
+                    # Real-time promotion to UI gold_standard.json
+                    promote_weights(mode)
                 
                 if "Final Peak Fitness:" in line_str:
                     try:
@@ -142,6 +144,7 @@ def run_mode_loop(mode, stop_event):
                     stagnation_counter = 0
                     # Fine-tune: reduce jitter slightly if we found a good spot
                     jitter_scale = max(0.1, jitter_scale * 0.85)
+                    # Redundant call at end of sweep for safety
                     promote_weights(mode)
                 else:
                     stagnation_counter += 1

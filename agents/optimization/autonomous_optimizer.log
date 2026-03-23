@@ -406,3 +406,111 @@
 2026-03-22 03:21:06,212 [INFO] Stopping Parallel Autonomous Optimizer...
 2026-03-22 03:21:14,642 [INFO] OPTIMIZER: Progress: 8400/100000 | Best Fitness: -113.55 | Progress: 8.4%
 2026-03-22 03:21:37,797 [INFO] OPTIMIZER: Progress: 8500/100000 | Best Fitness: -113.55 | Progress: 8.5%
+2026-03-22 03:43:16,023 [INFO] Initializing Parallel Autonomous Optimization Protocol V4...
+2026-03-22 03:43:16,023 [INFO] [BALANCED] Starting independent loop...
+2026-03-22 03:43:16,024 [INFO] [BALANCED] Starting sweep (25000 iterations, Jitter=1.00)...
+2026-03-22 03:43:16,765 [INFO] [BALANCED] [balanced] [0] ⭐ NEW BEST! Fit: -217.78 | Avg: 524.5 | Champ: 45.6%
+2026-03-22 03:43:16,767 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:43:16,768 [INFO] [BALANCED] [balanced] Progress: 0/25000 | Best Fitness: -217.78 | Progress: 0.0%
+2026-03-22 03:43:16,770 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:43:20,346 [INFO] [BALANCED] [balanced] [11] ⭐ NEW BEST! Fit: -211.08 | Avg: 503.9 | Champ: 42.4%
+2026-03-22 03:43:20,348 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:43:21,025 [INFO] [PERFECT] Starting independent loop...
+2026-03-22 03:43:21,025 [INFO] [PERFECT] Starting sweep (25000 iterations, Jitter=1.00)...
+2026-03-22 03:43:21,177 [INFO] [BALANCED] [balanced] [13] ⭐ NEW BEST! Fit: -207.01 | Avg: 497.4 | Champ: 40.0%
+2026-03-22 03:43:21,179 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:43:21,988 [INFO] [BALANCED] [balanced] [15] ⭐ NEW BEST! Fit: -206.94 | Avg: 481.4 | Champ: 35.8%
+2026-03-22 03:43:21,991 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:43:22,097 [INFO] [PERFECT] [perfect] Progress: 0/25000 | Best Fitness: -263.7 | Progress: 0.0%
+2026-03-22 03:43:22,102 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:43:22,603 [INFO] [BALANCED] [balanced] [16] ⭐ NEW BEST! Fit: -179.04 | Avg: 464.1 | Champ: 32.9%
+2026-03-22 03:43:22,604 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:43:23,007 [INFO] [BALANCED] [balanced] [17] ⭐ NEW BEST! Fit: -176.06 | Avg: 482.3 | Champ: 37.8%
+2026-03-22 03:43:23,009 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:43:23,092 [INFO] [PERFECT] [perfect] [2] ⭐ NEW BEST! Fit: -261.63 | Avg: 508.8 | Champ: 40.9%
+2026-03-22 03:43:23,097 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:43:24,724 [INFO] [PERFECT] [perfect] [5] ⭐ NEW BEST! Fit: -260.29 | Avg: 525.3 | Champ: 46.0%
+2026-03-22 03:43:24,728 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:43:26,033 [INFO] [AVERAGE] Starting independent loop...
+2026-03-22 03:43:26,033 [INFO] [AVERAGE] Starting sweep (25000 iterations, Jitter=1.00)...
+2026-03-22 03:43:28,095 [INFO] [PERFECT] [perfect] [9] ⭐ NEW BEST! Fit: -255.84 | Avg: 547.6 | Champ: 48.2%
+2026-03-22 03:43:28,097 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:43:28,336 [INFO] [AVERAGE] [average] Progress: 0/25000 | Best Fitness: 510.26 | Progress: 0.0%
+2026-03-22 03:43:28,338 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:43:28,611 [INFO] [PERFECT] [perfect] [10] ⭐ NEW BEST! Fit: -252.4 | Avg: 536.9 | Champ: 47.3%
+2026-03-22 03:43:28,614 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:43:28,905 [INFO] [AVERAGE] [average] [1] ⭐ NEW BEST! Fit: 512.77 | Avg: 516.6 | Champ: 44.9%
+2026-03-22 03:43:28,910 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:43:31,160 [INFO] [PERFECT] [perfect] [14] ⭐ NEW BEST! Fit: -216.76 | Avg: 496.4 | Champ: 38.0%
+2026-03-22 03:43:31,163 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:43:35,708 [INFO] [PERFECT] [perfect] [22] ⭐ NEW BEST! Fit: -200.48 | Avg: 450.3 | Champ: 27.6%
+2026-03-22 03:43:35,711 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:43:43,681 [INFO] [PERFECT] [perfect] [40] ⭐ NEW BEST! Fit: -196.63 | Avg: 441.3 | Champ: 28.0%
+2026-03-22 03:43:43,683 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:43:53,504 [INFO] [PERFECT] [perfect] [67] ⭐ NEW BEST! Fit: -189.82 | Avg: 397.6 | Champ: 20.7%
+2026-03-22 03:43:53,508 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:43:54,263 [INFO] [PERFECT] [perfect] [69] ⭐ NEW BEST! Fit: -169.79 | Avg: 367.9 | Champ: 15.6%
+2026-03-22 03:43:54,265 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:43:59,866 [INFO] [BALANCED] [balanced] Progress: 100/25000 | Best Fitness: -176.06 | Progress: 0.4%
+2026-03-22 03:43:59,870 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:44:05,544 [INFO] [PERFECT] [perfect] Progress: 100/25000 | Best Fitness: -169.79 | Progress: 0.4%
+2026-03-22 03:44:05,547 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:44:06,712 [INFO] [PERFECT] [perfect] [103] ⭐ NEW BEST! Fit: -161.62 | Avg: 367.8 | Champ: 17.1%
+2026-03-22 03:44:06,716 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:44:09,264 [INFO] [AVERAGE] [average] Progress: 100/25000 | Best Fitness: 512.77 | Progress: 0.4%
+2026-03-22 03:44:09,267 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:44:13,521 [INFO] [PERFECT] [perfect] [122] ⭐ NEW BEST! Fit: -158.91 | Avg: 368.9 | Champ: 16.2%
+2026-03-22 03:44:13,524 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:44:20,644 [INFO] [BALANCED] [balanced] [157] ⭐ NEW BEST! Fit: -172.45 | Avg: 440.2 | Champ: 27.8%
+2026-03-22 03:44:20,646 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:44:21,025 [INFO] [BALANCED] [balanced] [158] ⭐ NEW BEST! Fit: -171.06 | Avg: 435.9 | Champ: 26.9%
+2026-03-22 03:44:21,028 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:44:22,123 [INFO] [BALANCED] [balanced] [161] ⭐ NEW BEST! Fit: -159.46 | Avg: 431.3 | Champ: 25.8%
+2026-03-22 03:44:22,126 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:44:27,684 [INFO] [PERFECT] [perfect] [161] ⭐ NEW BEST! Fit: -156.24 | Avg: 337.2 | Champ: 16.7%
+2026-03-22 03:44:27,687 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:44:28,079 [INFO] [PERFECT] [perfect] [162] ⭐ NEW BEST! Fit: -155.08 | Avg: 308.9 | Champ: 12.0%
+2026-03-22 03:44:28,081 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:44:28,804 [INFO] [PERFECT] [perfect] [164] ⭐ NEW BEST! Fit: -153.48 | Avg: 286.3 | Champ: 9.3%
+2026-03-22 03:44:28,808 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:44:29,159 [INFO] [PERFECT] [perfect] [165] ⭐ NEW BEST! Fit: -152.32 | Avg: 289.5 | Champ: 12.7%
+2026-03-22 03:44:29,162 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:44:36,543 [INFO] [BALANCED] [balanced] Progress: 200/25000 | Best Fitness: -159.46 | Progress: 0.8%
+2026-03-22 03:44:36,547 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:44:38,063 [INFO] [BALANCED] [balanced] [204] ⭐ NEW BEST! Fit: -155.9 | Avg: 411.7 | Champ: 23.6%
+2026-03-22 03:44:38,066 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:44:38,448 [INFO] [BALANCED] [balanced] [205] ⭐ NEW BEST! Fit: -151.6 | Avg: 404.6 | Champ: 22.4%
+2026-03-22 03:44:38,451 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:44:41,479 [INFO] [AVERAGE] [average] [188] ⭐ NEW BEST! Fit: 528.19 | Avg: 505.2 | Champ: 39.8%
+2026-03-22 03:44:41,483 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:44:42,316 [INFO] [PERFECT] [perfect] Progress: 200/25000 | Best Fitness: -152.32 | Progress: 0.8%
+2026-03-22 03:44:42,318 [INFO] [PERFECT] PROMOTION SUCCESS: Updated max_champion in gold_standard.json
+2026-03-22 03:44:42,344 [INFO] [AVERAGE] [average] [190] ⭐ NEW BEST! Fit: 532.3 | Avg: 512.6 | Champ: 42.0%
+2026-03-22 03:44:42,346 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:44:44,889 [INFO] [BALANCED] [balanced] [218] ⭐ NEW BEST! Fit: -145.82 | Avg: 376.8 | Champ: 17.3%
+2026-03-22 03:44:44,896 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:44:45,820 [INFO] [AVERAGE] [average] [195] ⭐ NEW BEST! Fit: 536.97 | Avg: 530.8 | Champ: 45.6%
+2026-03-22 03:44:45,823 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:44:45,936 [INFO] [BALANCED] [balanced] [220] ⭐ NEW BEST! Fit: -127.85 | Avg: 337.7 | Champ: 12.4%
+2026-03-22 03:44:45,938 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:44:46,314 [INFO] [AVERAGE] [average] [196] ⭐ NEW BEST! Fit: 555.79 | Avg: 544.3 | Champ: 48.4%
+2026-03-22 03:44:46,317 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:44:47,285 [INFO] [AVERAGE] [average] [198] ⭐ NEW BEST! Fit: 558.16 | Avg: 544.7 | Champ: 48.9%
+2026-03-22 03:44:47,288 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:44:47,372 [INFO] [BALANCED] [balanced] [223] ⭐ NEW BEST! Fit: -127.54 | Avg: 361.9 | Champ: 17.8%
+2026-03-22 03:44:47,379 [INFO] [BALANCED] PROMOTION SUCCESS: Updated max_balanced in gold_standard.json
+2026-03-22 03:44:48,560 [INFO] [AVERAGE] [average] Progress: 200/25000 | Best Fitness: 558.16 | Progress: 0.8%
+2026-03-22 03:44:48,562 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:44:54,931 [INFO] [AVERAGE] [average] [211] ⭐ NEW BEST! Fit: 560.87 | Avg: 556.4 | Champ: 50.4%
+2026-03-22 03:44:54,936 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:44:56,664 [INFO] [AVERAGE] [average] [214] ⭐ NEW BEST! Fit: 565.95 | Avg: 558.5 | Champ: 51.1%
+2026-03-22 03:44:56,668 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:44:57,714 [INFO] [AVERAGE] [average] [216] ⭐ NEW BEST! Fit: 569.54 | Avg: 560.6 | Champ: 51.3%
+2026-03-22 03:44:57,718 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:44:59,617 [INFO] [AVERAGE] [average] [219] ⭐ NEW BEST! Fit: 583.95 | Avg: 563.4 | Champ: 49.3%
+2026-03-22 03:44:59,620 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:45:00,293 [INFO] [AVERAGE] [average] [220] ⭐ NEW BEST! Fit: 600.61 | Avg: 577.6 | Champ: 54.0%
+2026-03-22 03:45:00,296 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:45:09,371 [INFO] [AVERAGE] [average] [236] ⭐ NEW BEST! Fit: 606.55 | Avg: 557.7 | Champ: 45.8%
+2026-03-22 03:45:09,373 [INFO] [AVERAGE] PROMOTION SUCCESS: Updated max_avg in gold_standard.json
+2026-03-22 03:45:11,450 [INFO] Stopping Parallel Autonomous Optimizer...

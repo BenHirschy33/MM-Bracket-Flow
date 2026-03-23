@@ -45,6 +45,14 @@ TEAM_MAP = {
     "Texas A&M Aggies": "Texas A&M",
     "Oklahoma Sooners": "Oklahoma",
     "Utah State Aggies": "Utah State",
+    "VCU Rams": "Virginia Commonwealth",
+    "VCU": "Virginia Commonwealth",
+    "Louisville Cardinals": "Louisville",
+    "Saint Mary's Gaels": "Saint Mary's (CA)",
+    "UMBC": "Maryland-Baltimore County",
+    "UMBC Retrievers": "Maryland-Baltimore County",
+    "NC State": "NC State",
+    "North Carolina State": "NC State"
 }
 
 def clean_team_name(espn_name):
@@ -58,7 +66,9 @@ def clean_team_name(espn_name):
         "Huskies", "Horned Frogs", "Blue Devils", "Tar Heels", "Jayhawks", "Wildcats", "Bruins", "Hoosiers", "Spartans", "Bulldogs", "Boilermakers", 
         "Crimson Tide", "Cougars", "Volunteers", "Fighting Illini", "Bluejays", "Golden Eagles", "Bears", "Cyclones", "Longhorns", "Tigers", 
         "Gators", "Badgers", "Wolfpack", "Aztecs", "Gaels", "Ramblers", "Red Storm", "Aggies", "Sooners", "Cavaliers", "Red Raiders", "Hurricanes", 
-        "Hawkeyes", "Minutemen", "Ducks", "Beavers", "Commodores", "Gamecocks", "Mountaineers", "Bulls", "Knights", "Owls", "Panthers", "Seminoles"
+        "Hawkeyes", "Minutemen", "Ducks", "Beavers", "Commodores", "Gamecocks", "Mountaineers", "Bulls", "Knights", "Owls", "Panthers", "Seminoles",
+        "Wolverines", "Cornhuskers", "Razorbacks", "Buckeyes", "Longhorns", "Volunteers", "Tigers", "Bobcats", "Eagles", "Billikens",
+        "Cardinals", "Rams", "Miners", "Lumberjacks", "Dolphins", "Paladins", "Bisons", "Coyotes", "Jackrabbits", "Peacocks", "Monarchs"
     ]
     
     cleaned = espn_name
@@ -96,9 +106,9 @@ def get_ncaa_round(event):
     if not description:
         description = event.get("shortName", "").lower()
 
-    if "first round" in description or "1st round" in description:
+    if "first round" in description or "1st round" in description or "round of 64" in description:
         return "round_of_32"
-    if "second round" in description or "2nd round" in description:
+    if "second round" in description or "2nd round" in description or "round of 32" in description:
         return "sweet_sixteen"
     if "sweet 16" in description or "sweet sixteen" in description or "regional semifinal" in description:
         return "elite_eight"
@@ -112,7 +122,8 @@ def get_ncaa_round(event):
     return None
 
 def sync_live_data(year=2026):
-    url = "http://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard"
+    # Fetch full tournament range using groups=100 (NCAA Tournament) to ensure we get historical games
+    url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates={year}0315-{year}0415&groups=100&limit=200"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()

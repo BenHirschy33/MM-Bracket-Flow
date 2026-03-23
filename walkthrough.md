@@ -24,6 +24,33 @@ I have prepared the repository for high-velocity, parallel development. You are 
 - **Signals**: Integrated `neutral_win_pct` and `non_conf_win_pct`.
 - **Logic**: Penalized teams that struggle outside their home floor or conference silo.
 
+### 🚀## Phase 3.7: Logic Parity & Server Lifecycle
+
+We have unified the simulation models and implemented a robust server management system.
+
+### 1. Simulation Engine "Rubber Band" Removal
+
+- [x] Unify simulation logic in `simulator.py`
+- [x] Implement port cleanup and lifecycle management
+- [x] Add verbose logging to backend math
+- [x] Settings Panel Reactivity (Phase 3.9)
+    - [x] Hook up `reset-optimal` button
+    - [x] Expand `applyWeights` to include all V4 sliders
+    - [x] Implement Live Modal Updates (Re-calculate prob on slider move)
+    - [x] Verified real-time 'Chaos' scaling (100% volatility = 50/50 split)
+
+## Final Evidence
+
+![Reactivity Verification](file:///Users/benhirschy/.gemini/antigravity/brain/bf9f3739-63e5-4041-a319-a010c01f0be6/verify_reactivity_v5_1774295692971.webp)
+*Verification of live settings reactivity and modal updates.*
+
+## Conclusion
+
+The MM-Bracket-Flow system is now fully synchronized:
+1.  **Sim Logic**: Favorite-biased and round-aware.
+2.  **UI**: Reactive to all factor changes in real-time.
+3.  **Stability**: Automatic port management and inactivity timeout.
+
 ### ✅ Phase 6: Quality Audit & Defensive Discipline
 - **Efficiency Baseline**: Standardized pace-adjusted `AdjO` and `AdjD` for all 26 seasons.
 - **Defensive Discipline**: Integrated `def_ft_rate` (Free Throw Rate Allowed) to penalize foul-prone teams.
