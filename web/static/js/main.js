@@ -386,7 +386,7 @@ function toggleLock(region, round, teamName) {
         const isCurrentlyLocked = appState.locks.regions[region][round][teamName];
 
         if (isCurrentlyLocked) {
-            // Unlocking logic: cascade clear LOCKS
+            // Unlocking logic: cascade clear LOCKS (Forward)
             for (let r = round; r <= 6; r++) {
                 if (appState.locks.regions[region]?.[r]) {
                     delete appState.locks.regions[region][r][teamName];
@@ -399,9 +399,48 @@ function toggleLock(region, round, teamName) {
             clearTeamFromFutureRounds(region, round, teamName);
         } else {
             // Locking logic
+            // 1. Clear current round opponent lock
             const opponent = findOpponent(region, round, teamName);
-            if (opponent) delete appState.locks.regions[region][round][opponent];
-            appState.locks.regions[region][round][teamName] = true;
+            if (opponent) {
+                if (region === 'final_four') delete appState.locks.final_four[opponent];
+                else if (region === 'championship') delete appState.locks.championship[opponent];
+                else if (appState.locks.regions[region]?.[round]) delete appState.locks.regions[region][round][opponent];
+            }
+            
+            // 2. Set current lock
+            if (region === 'final_four') {
+                if (!appState.locks.final_four) appState.locks.final_four = {};
+                appState.locks.final_four[teamName] = true;
+            } else if (region === 'championship') {
+                if (!appState.locks.championship) appState.locks.championship = {};
+                appState.locks.championship[teamName] = true;
+            } else {
+                if (!appState.locks.regions[region]) appState.locks.regions[region] = {};
+                if (!appState.locks.regions[region][round]) appState.locks.regions[region][round] = {};
+                appState.locks.regions[region][round][teamName] = true;
+            }
+
+            // 3. Backward Propagation: Lock team in all previous rounds
+            if (region === 'championship') {
+                // Lock in Final Four (Round 5)
+                if (!appState.locks.final_four) appState.locks.final_four = {};
+                const ffOpp = findOpponent('final_four', 5, teamName);
+                if (ffOpp) delete appState.locks.final_four[ffOpp];
+                appState.locks.final_four[teamName] = true;
+                
+                // Continue from Final Four
+                propagateBackupFromFinalFour(teamName);
+            } else if (region === 'final_four') {
+                propagateBackupFromFinalFour(teamName);
+            } else {
+                // Regular region backward propagation
+                for (let r = round - 1; r >= 1; r--) {
+                    if (!appState.locks.regions[region][r]) appState.locks.regions[region][r] = {};
+                    const prevOpp = findOpponent(region, r, teamName);
+                    if (prevOpp) delete appState.locks.regions[region][r][prevOpp];
+                    appState.locks.regions[region][r][teamName] = true;
+                }
+            }
         }
     }
 
@@ -409,6 +448,40 @@ function toggleLock(region, round, teamName) {
     if (appState.currentData) {
         propagateLocksLocally(appState.currentData, appState.locks);
         renderBracketWaterfall(appState.currentData);
+    }
+}
+
+function propagateBackupFromFinalFour(teamName) {
+    if (!appState.bracketData) return;
+    
+    // Find regional Elite Eight (Round 4) parent
+    let foundRegion = null;
+    for (const [reg, rounds] of Object.entries(appState.bracketData.regions)) {
+        // Just check Round 1 for presence
+        const r1 = rounds[0];
+        if (r1.matchups.some(m => m.team_a === teamName || m.team_b === teamName)) {
+            foundRegion = reg;
+            break;
+        }
+    }
+
+    if (foundRegion) {
+        // Lock team in all regional rounds (1-4)
+        for (let r = 1; r <= 4; r++) {
+            if (!appState.locks.regions[foundRegion]) appState.locks.regions[foundRegion] = {};
+            if (!appState.locks.regions[foundRegion][r]) appState.locks.regions[foundRegion][r] = {};
+            
+            const prevOpp = findOpponent(foundRegion, r, teamName);
+            if (prevOpp) delete appState.locks.regions[foundRegion][r][prevOpp];
+            appState.locks.regions[foundRegion][r][teamName] = true;
+        }
+    }
+}
+
+function toggleLockPromotion(region, round, teamName) {
+    // V4 Rapid Advance: Lock in the NEXT round if current is already locked
+    if (round < 6) {
+        toggleLock(region, round + 1, teamName);
     }
 }
 
