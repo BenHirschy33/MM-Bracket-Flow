@@ -52,13 +52,11 @@
         <div id="settings-panel" class="settings-modal">
             <div class="modal-content glass">
                 <button id="close-settings-btn" class="close-btn">&times;</button>
-                <h3>Simulation Weights</h3>
-                
-                <section id="simulation-controls" class="sidebar-card">
-                    <div class="sidebar-header">
-                        <p class="sidebar-subtitle">Tweak factors to predict chaos</p>
-                        <button id="reset-optimal" class="premium-btn secondary small">🔄 Reset Factors</button>
-                    </div>
+                <div class="sidebar-header">
+                    <h3 id="settings-mode-title">Simulation Weights (Custom)</h3>
+                    <p class="sidebar-subtitle">Tweak factors to predict chaos</p>
+                    <button id="reset-optimal" class="premium-btn secondary small">🔄 Reset Factors</button>
+                </div>
                     
                     <div class="control-groups">
                         <!-- Offense Pivot -->
@@ -257,6 +255,11 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="settings-actions">
+                        <button id="save-run-weights" class="premium-btn primary big full-width">⚡ Apply & Run Simulation</button>
+                        <p class="settings-hint">Settings are saved automatically for this session.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -341,6 +344,6 @@
         </div>
     </div>
 
-    <script src="/static/js/main.js?v=2.0" type="module"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v={{ range(1000, 9999)|random }}"></script>
 </body>
 </html>

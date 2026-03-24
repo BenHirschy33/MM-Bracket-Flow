@@ -25,9 +25,9 @@ def inactivity_monitor():
     """Shuts down the server if no requests are received for 5 minutes."""
     global LAST_REQUEST_TIME
     while True:
-        time.sleep(30) # Check every 30 seconds
-        if time.time() - LAST_REQUEST_TIME > 300: # 5 minutes
-            print("\n[LIFECYCLE] Inactivity timeout reached (5 mins). Shutting down...")
+        time.sleep(60) # Check every minute
+        if time.time() - LAST_REQUEST_TIME > 1800: # 30 minutes
+            print("\n[LIFECYCLE] Inactivity timeout reached (30 mins). Shutting down...")
             os.kill(os.getpid(), signal.SIGINT)
             break
 
@@ -184,7 +184,8 @@ def get_preset_weights():
             else:
                 key = "max_perfect"
 
-            weights_dict = gold[key]["weights"]
+            weights_dict = DEFAULT_WEIGHTS.to_dict()
+            weights_dict.update(gold[key]["weights"])
             meta = gold[key].get("meta", {})
             return jsonify({"mode": mode, "meta": meta, "weights": weights_dict})
         except Exception as e:

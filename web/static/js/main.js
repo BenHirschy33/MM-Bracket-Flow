@@ -2,6 +2,54 @@ console.log("[MM-Bracket-Flow] main.js loaded v1.2");
 
 const appState = {
     mode: 'balanced', // standard, average, balanced, perfect
+    lastMode: 'balanced', // Track last preset for settings sync
+    isApplyingPreset: false,
+    
+    // V5.6: Hardcoded Gold Standard Baselines (Fallback if API is unreachable)
+    baselines: {
+        average: {
+            efficiency_weight: 0.0815, 
+            seed_weight: 0.001,
+            sos_weight: 0.25,
+            to_weight: 0.0365,
+            trb_weight: 0.16,
+            ft_weight: 0.29,
+            defense_premium: 1.91,
+            ts_weight: 6.66,
+            experience_weight: 646.7,
+            sq_margin_weight: 0.1218,
+            kill_shot_momentum_weight: 0.123,
+            rim_3_volatility_weight: 0.046
+        },
+        perfect: {
+            efficiency_weight: 1.5,
+            seed_weight: 0.8,
+            sos_weight: 4.01,
+            to_weight: 0.15,
+            trb_weight: 0.9,
+            ft_weight: 0.6,
+            defense_premium: 3.3,
+            ts_weight: 0.85,
+            experience_weight: 12.0,
+            sq_margin_weight: 1.0,
+            kill_shot_momentum_weight: 1.0,
+            rim_3_volatility_weight: 1.0
+        },
+        balanced: {
+            efficiency_weight: 0.86,
+            seed_weight: 1.0,
+            sos_weight: 0.68,
+            to_weight: 3.0,
+            trb_weight: 0.71,
+            ft_weight: 1.0,
+            defense_premium: 1.0,
+            experience_weight: 10.5,
+            sq_margin_weight: 1.51,
+            kill_shot_momentum_weight: 0.155,
+            rim_3_volatility_weight: 0.046,
+            momentum_weight: 0.18
+        }
+    },
     showSettings: false,
     year: '2026',
     volatility: 0,
@@ -45,9 +93,7 @@ const appState = {
     },
     bracketData: null,
     locksInitialized: false,
-    mode: 'current', // Standard Overview by default
-    volatility: 0,
-    year: 2026,
+    // mode: 'current' removed - handled by initial balanced state
     activeMatchup: null, // Track currently open modal for live updates
     activeWeights: {},   // Comprehensive weight set (140+ variables)
     hasSimulated: false
@@ -183,38 +229,27 @@ function debounceSim() {
 
 function applyWeights(weights) {
     if (!weights) return;
-    appState.isApplyingPreset = true; // Guard against slider event loops
     
-    // Store the FULL object (140+ variables) for simulation use
-    appState.activeWeights = { ...weights };
+    // Determine the source of weights for the title
+    const mode = appState.mode;
+    const isBaseline = (mode === 'average' || mode === 'perfect' || mode === 'balanced');
+    
+    console.log(`[UI] Syncing Weights Mode: ${mode}`, weights);
+    appState.isApplyingPreset = true;
 
-    // V4 Slider Mapping (subset for UI display)
+    // Direct Mapping of the most critical UI sliders
     const uiMapping = {
-        'weight-eff': weights.efficiency_weight || weights.efficiency || 0.86,
-        'weight-three-point-dominance': weights.three_point_dominance || 0,
-        'weight-orb': weights.orb_weight || 0.38,
-        'weight-ts': weights.ts_weight || 0.85,
-        'weight-def-premium': weights.defense_premium || 3.3,
-        'weight-rim-protection': weights.rim_protection_weight || 0.44,
-        'weight-defensive-grit-bias': weights.defensive_grit_bias || 0.6,
-        'weight-volatility': weights.volatility || 0,
-        'weight-sos': weights.sos_weight || weights.sos || 7.6,
-        'weight-experience': weights.experience_weight || 7.6,
-        'weight-cinderella-factor': weights.cinderella_factor || 3.6,
-        'weight-luck-regression': weights.luck_regression_weight || 0.09,
-        'weight-sq-margin': weights.sq_margin_weight || 1.0,
-        'weight-kill-shot-momentum': weights.kill_shot_momentum_weight || 1.0,
-        'weight-rim-3-volatility': weights.rim_3_volatility_weight || 1.0,
-        'weight-seed': weights.seed_weight || 1.0,
-        'weight-to': weights.to_weight || 1.0,
-        'weight-late-round-def': weights.late_round_def_premium || 1.0,
-        'weight-coach-tournament': weights.coach_tournament_weight || 1.0,
-        'weight-intuition-factor': weights.intuition_factor_weight || 1.0,
-        'weight-blue-blood': weights.blue_blood_bonus || 1.0,
-        'weight-tempo-upset': weights.tempo_upset_weight || 1.0,
-        'weight-bench-rest': weights.bench_rest_bonus || 1.0,
-        'weight-trb': weights.trb_weight || 0.55,
-        'weight-momentum': weights.momentum_weight || 0.12
+        'weight-eff': weights.efficiency_weight ?? weights.efficiency ?? appState.baselines[mode]?.efficiency_weight ?? 0.86,
+        'weight-seed': weights.seed_weight ?? weights.seed ?? appState.baselines[mode]?.seed_weight ?? 1.0,
+        'weight-to': weights.to_weight ?? weights.to ?? appState.baselines[mode]?.to_weight ?? 1.0,
+        'weight-sos': weights.sos_weight ?? weights.sos ?? appState.baselines[mode]?.sos_weight ?? 0.68,
+        'weight-trb': weights.trb_weight ?? weights.trb ?? appState.baselines[mode]?.trb_weight ?? 0.71,
+        'weight-def-premium': weights.defense_premium ?? appState.baselines[mode]?.defense_premium ?? 1.0,
+        'weight-sq-margin': weights.sq_margin_weight ?? appState.baselines[mode]?.sq_margin_weight ?? 1.0,
+        'weight-experience': weights.experience_weight ?? appState.baselines[mode]?.experience_weight ?? 10.5,
+        'weight-ts': weights.ts_weight ?? appState.baselines[mode]?.ts_weight ?? 0.85,
+        'weight-kill-shot-momentum': weights.kill_shot_momentum_weight ?? appState.baselines[mode]?.kill_shot_momentum_weight ?? 1.0,
+        'weight-momentum': weights.momentum_weight ?? weights.momentum ?? appState.baselines[mode]?.momentum_weight ?? 0.18
     };
 
     for (const [id, val] of Object.entries(uiMapping)) {
@@ -222,17 +257,34 @@ function applyWeights(weights) {
         const statName = id.replace('weight-', '');
         const numInput = document.getElementById('num-' + statName);
         const valLabel = document.getElementById('val-' + statName);
-
+        
         if (slider) {
-            slider.value = val;
-            if (numInput) numInput.value = val;
-            if (valLabel) valLabel.textContent = val;
+            const numericVal = parseFloat(val);
+            
+            // Dynamic Range Reset
+            slider.max = Math.max(parseFloat(slider.max), numericVal * 1.5, 1.0);
+            slider.min = Math.min(parseFloat(slider.min), numericVal * 0.5, 0);
+            
+            slider.value = numericVal;
+            if (numInput) {
+                numInput.max = slider.max;
+                numInput.min = slider.min;
+                numInput.value = numericVal;
+            }
+            if (valLabel) valLabel.textContent = (typeof numericVal === 'number') ? numericVal.toFixed(3) : numericVal;
         }
     }
 
-    if (uiMapping['weight-volatility'] !== undefined) {
-        appState.volatility = uiMapping['weight-volatility'];
+    // Update the panel title for absolute clarity
+    const titleEl = document.getElementById('settings-mode-title');
+    if (titleEl) {
+        const modeName = mode.charAt(0).toUpperCase() + mode.slice(1);
+        titleEl.textContent = `Simulation Weights (${modeName})`;
+        titleEl.style.color = isBaseline ? '#00ffa3' : '#ff7b00'; // Green for preset, Orange for custom
     }
+
+    // Force internal activeWeights to be the full set
+    appState.activeWeights = { ...weights };
 
     setTimeout(() => { 
         appState.isApplyingPreset = false; 
@@ -307,7 +359,7 @@ function switchToCustom() {
     if (appState.mode !== 'custom') {
         appState.mode = 'custom';
         document.querySelectorAll('.tab-btn').forEach(b => {
-            b.classList.toggle('active', b.getAttribute('data-mode') === 'custom');
+            b.classList.toggle('active', b.getAttribute('data-mode') === 'settings');
         });
     }
 }
@@ -650,38 +702,48 @@ async function renderMMBracket() {
 }
 
 // --- API Calls ---
-
 async function initWeights() {
+    console.log("[INIT] Fetching preset weights...");
     try {
-        // Fetch preset profiles in parallel
-        const [avgRes, champRes, balancedRes] = await Promise.all([
-            fetch('/api/weights/preset?mode=avg'),
-            fetch('/api/weights/preset?mode=champion'),
-            fetch('/api/weights/preset?mode=balanced')
+        const fetchPreset = async (mode) => {
+            try {
+                const res = await fetch(`/api/weights/preset?mode=${mode}`);
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const data = await res.json();
+                return data.weights || {};
+            } catch (err) {
+                console.error(`[INIT] Failed to fetch ${mode} weights:`, err);
+                return {}; // Fallback to empty object
+            }
+        };
+
+        const [avg, perfect, balanced] = await Promise.all([
+            fetchPreset('avg'),
+            fetchPreset('perfect'),
+            fetchPreset('balanced')
         ]);
-        const avgData = await avgRes.json();
-        const champData = await champRes.json();
-        const balancedData = await balancedRes.json();
 
-        // Store the full weight dicts for each mode
-        appState.optimalWeights = avgData.weights || {};
-        appState.perfectWeights = champData.weights || {};
-        appState.balancedWeights = balancedData.weights || {};
+        appState.optimalWeights = avg;
+        appState.perfectWeights = perfect;
+        appState.balancedWeights = balanced;
 
-        // V4: Initialize activeWeights with current mode
+        console.log("[INIT] Presets loaded:", { avg: !!avg, perfect: !!perfect, balanced: !!balanced });
+
+        // Initial application
         const initialWeights = (appState.mode === 'perfect') ? appState.perfectWeights : 
                               (appState.mode === 'average') ? appState.optimalWeights : 
                                appState.balancedWeights;
-        appState.activeWeights = { ...initialWeights };
-
-        console.log('[Weights] Loaded presets. System monitoring 140+ variables.');
-
-        // V4: Ensure UI sliders reflect the initial mode on load
-        if (appState.mode === 'average' || appState.mode === 'perfect' || appState.mode === 'balanced') {
+                               
+        if (Object.keys(initialWeights).length > 0) {
+            appState.activeWeights = { ...initialWeights };
             applyWeights(appState.activeWeights);
+        } else {
+            console.warn("[INIT] No valid weights found for initial mode, using defaults.");
+            appState.activeWeights = {}; 
+            applyWeights({}); 
         }
     } catch (err) {
-        console.error("Failed to fetch preset weights", err);
+        console.error("[INIT] Error in initWeights:", err);
     }
 }
 
@@ -722,48 +784,51 @@ async function fetchTeams(year) {
 }
 
 async function runSimulation() {
-    // Sync sliders to activeWeights (allows user overrides)
+    console.log("[Simulation] Syncing sliders to activeWeights...");
     const weightInputs = document.querySelectorAll('input[id^="weight-"]');
-    weightInputs.forEach(input => {
-        const id = input.id.replace('weight-', '').replace(/-/g, '_');
-        let key = id;
-        if (key === 'eff') key = 'efficiency_weight'; // Use standard config names
-        if (!key.endsWith('_weight') && !['three_point_dominance', 'defensive_grit_bias', 'volatility', 'cinderella_factor', 'defense_premium'].includes(key)) {
-            // Append _weight if missing and not a direct name
-            if (appState.activeWeights[key + '_weight'] !== undefined) key += '_weight';
-        }
-        appState.activeWeights[key] = parseFloat(input.value);
-    });
+    if (weightInputs.length > 0) {
+        weightInputs.forEach(input => {
+            const id = input.id.replace('weight-', '').replace(/-/g, '_');
+            let key = id;
+            if (key === 'eff') key = 'efficiency_weight';
+            if (key === 'sos') key = 'sos_weight';
+            if (key === 'trb') key = 'trb_weight';
+            if (key === 'to') key = 'to_weight';
+
+            if (appState.activeWeights[key] !== undefined) {
+                 appState.activeWeights[key] = parseFloat(input.value);
+            } else if (appState.activeWeights[key + '_weight'] !== undefined) {
+                 appState.activeWeights[key + '_weight'] = parseFloat(input.value);
+            } else {
+                 appState.activeWeights[key] = parseFloat(input.value);
+            }
+        });
+    }
+
+    const useLive = (appState.mode === 'current');
 
     try {
-        const useLive = (appState.mode === 'current');
-        const response = await fetch(`/api/simulation/full`, {
+        const response = await fetch('/api/simulation/full', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 year: parseInt(appState.year),
                 mode: 'monte_carlo',
                 volatility: appState.volatility / 100,
-                weights: appState.activeWeights, // Send the full merged set
+                weights: appState.activeWeights,
                 locks: appState.locks,
-                use_live_results: useLive
+                use_live_results: useLive || appState.useLiveResults
             })
         });
         const data = await response.json();
         appState.hasSimulated = true;
-
-        // V4: Simulation Overrides Logic
-        // Enforce actual results (Green) and locks (Red) over simulation
         stampActualFlags(data, appState.bracketData);
         propagateLocksLocally(data, appState.locks);
-
-        console.log("[UI] Simulation complete. Applying new bracket results.", data);
         renderBracketWaterfall(data);
 
-        // Update Live Indicator
         const liveIndicator = document.getElementById('live-indicator');
         if (liveIndicator) {
-            liveIndicator.style.display = useLive ? 'flex' : 'none';
+            liveIndicator.style.display = (useLive || appState.useLiveResults) ? 'flex' : 'none';
         }
     } catch (err) {
         console.error("Simulation failed", err);
@@ -775,20 +840,34 @@ async function runSimulation() {
  * Used when switching modes (Balanced/Average/Perfect) — no randomness.
  */
 async function autoFillBracket() {
-    const weights = {};
-    document.querySelectorAll('input[id^="weight-"]').forEach(input => {
+    // 1. Sync sliders to activeWeights first (same as runSimulation)
+    const weightInputs = document.querySelectorAll('input[id^="weight-"]');
+    weightInputs.forEach(input => {
         const id = input.id.replace('weight-', '').replace(/-/g, '_');
-        weights[id === 'eff' ? 'efficiency' : id] = parseFloat(input.value);
+        let key = id;
+        if (key === 'eff') key = 'efficiency_weight';
+        if (key === 'sos') key = 'sos_weight';
+        if (key === 'trb') key = 'trb_weight';
+        if (key === 'to') key = 'to_weight';
+
+        if (appState.activeWeights[key] !== undefined) {
+             appState.activeWeights[key] = parseFloat(input.value);
+        } else if (appState.activeWeights[key + '_weight'] !== undefined) {
+             appState.activeWeights[key + '_weight'] = parseFloat(input.value);
+        } else {
+             appState.activeWeights[key] = parseFloat(input.value);
+        }
     });
+
     try {
         const response = await fetch('/api/simulation/full', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 year: parseInt(appState.year),
-                mode: 'deterministic',  // Always pick the favorite — no randomness
+                mode: 'deterministic',
                 volatility: 0,
-                weights,
+                weights: appState.activeWeights,
                 locks: appState.locks,
                 use_live_results: false
             })
@@ -1356,7 +1435,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('matchup-modal')?.addEventListener('click', (e) => {
         if (e.target.id === 'matchup-modal') closeMatchupModal();
     });
+    document.getElementById('save-run-weights')?.addEventListener('click', () => {
+        document.getElementById('settings-panel')?.classList.remove('active');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        // Highlight custom if we were in a custom state
+        if (appState.mode === 'custom') {
+            document.querySelector('.tab-btn[data-mode="settings"]')?.classList.add('active');
+        }
+        
+        runSimulation();
+    });
 
+    // Consolidated Sync Button
     document.getElementById('run-simulation-btn')?.addEventListener('click', () => {
         const btn = document.getElementById('run-simulation-btn');
         const originalHtml = btn.innerHTML;
@@ -1374,40 +1465,56 @@ document.addEventListener('DOMContentLoaded', () => {
             const mode = btn.dataset.mode;
             if (!mode) return;
 
-            // Update app state and UI
+            if (mode === 'settings') {
+                const panel = document.getElementById('settings-panel');
+                if (panel) {
+                    panel.classList.toggle('active');
+                    if (panel.classList.contains('active')) {
+                        // Opened: Sync UI to the CURRENT truth (activeWeights)
+                        console.log("[UI] Settings Opened - Syncing to activeWeights");
+                        applyWeights(appState.activeWeights);
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                }
+                return;
+            }
+
+            // Real Mode Selection (Average, Perfect, Balanced, Overview)
+            console.log(`[UI] Mode Switch -> ${mode}`);
+            
+            // Close settings panel on mode switch
+            document.getElementById('settings-panel')?.classList.remove('active');
+            document.querySelector('.tab-btn[data-mode="settings"]')?.classList.remove('active');
+
             appState.mode = mode;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
-            if (mode === 'settings') {
-                const panel = document.getElementById('settings-panel');
-                if (panel) panel.classList.toggle('active');
-                // Don't set mode to 'settings' permanently
-                btn.classList.remove('active');
-                return;
-            }
-
-            // For other modes, ensure settings panel is closed
-            document.getElementById('settings-panel')?.classList.remove('active');
-
-            // Track last real mode before overview action clears it
             if (mode === 'overview') {
                 btn.classList.remove('active');
                 globalZoomOverview('all');
                 return;
             }
 
-            // Store last real mode for settings panel reference
+            // Preset Weights Selection
             appState.lastMode = mode;
+            
+            let targetWeights = null;
+            if (mode === 'average') targetWeights = appState.optimalWeights;
+            else if (mode === 'perfect') targetWeights = appState.perfectWeights;
+            else if (mode === 'balanced') targetWeights = appState.balancedWeights;
 
-            if (appState.mode === 'average') applyWeights(appState.optimalWeights);
-            else if (appState.mode === 'perfect') applyWeights(appState.perfectWeights);
-            else if (appState.mode === 'balanced') applyWeights(appState.balancedWeights);
-
-            // Auto-fill bracket deterministically for preset modes
-            if (['average', 'perfect', 'balanced'].includes(appState.mode)) {
-                setTimeout(() => autoFillBracket(), 350); // Wait for applyWeights guard to clear
+            if (targetWeights && Object.keys(targetWeights).length > 0) {
+                console.log(`[UI] Loading Preset: ${mode}`);
+                appState.activeWeights = JSON.parse(JSON.stringify(targetWeights));
+                applyWeights(appState.activeWeights);
+                
+                // Deterministic simulation run for presets
+                setTimeout(() => autoFillBracket(), 350);
             } else {
+                console.warn(`[UI] Preset ${mode} weights not loaded yet or empty.`);
                 renderMMBracket();
             }
         });
@@ -1465,7 +1572,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Initial data load
+    // Initial data load - Default to Balanced
+    document.querySelector('.tab-btn[data-mode="balanced"]')?.classList.add('active');
     initWeights();
     initWeightListeners();
     fetchTeams(appState.year);

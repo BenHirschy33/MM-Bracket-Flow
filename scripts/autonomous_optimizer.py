@@ -68,7 +68,7 @@ def promote_weights(mode, fitness=None, avg=None, acc=None, iteration=None):
                 "mode": mode,
                 "fitness": fitness,
                 "avg_score": avg,
-                "champ_acc": acc,
+                "espn_max": acc, # Reusing 'acc' parameter for Max Score
                 "iteration": iteration
             }
         }
@@ -110,10 +110,14 @@ def run_mode_loop(mode, stop_event, iterations=1000000, load_state=None):
                     try:
                         fit_val = float(line_str.split("Fit:")[1].split("|")[0].strip())
                         avg_val = float(line_str.split("Avg:")[1].split("|")[0].strip())
-                        acc_val = float(line_str.split("Champ:")[1].split("%")[0].strip()) / 100.0
-                        # Extract iteration [Iter: x]
-                        iter_val = int(line_str.split("[Iter:")[1].split("]")[0].strip())
-                        promote_weights(mode, fitness=fit_val, avg=avg_val, acc=acc_val, iteration=iter_val)
+                        max_val = float(line_str.split("Max:")[1].split("|")[0].strip())
+                        # Extract iteration [Iter: x] or [500/1000]
+                        if "[Iter:" in line_str:
+                            iter_val = int(line_str.split("[Iter:")[1].split("]")[0].strip())
+                        else:
+                            iter_val = int(line_str.split("[")[2].split("/")[0].strip())
+                        
+                        promote_weights(mode, fitness=fit_val, avg=avg_val, acc=max_val, iteration=iter_val)
                     except Exception as e:
                         logging.error(f"[{mode.upper()}] Parsing failed on line '{line_str}': {e}")
                 if "Peak Fitness:" in line_str:
