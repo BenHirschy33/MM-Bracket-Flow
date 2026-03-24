@@ -273,11 +273,11 @@
     "kill_shot_momentum_weight": 0.024640809015725504,
     "chaos_mode": 0.07685912269167935
   },
-  "temperature": 13.81171558318533,
-  "total_iterations_run": 7200,
+  "temperature": 13.784118378539901,
+  "total_iterations_run": 7220,
   "best_fitness": 2276.765037644463,
   "best_espn_avg": 595.0020000000001,
   "best_espn_max": 700.0,
   "best_accuracy": 0.497,
-  "timestamp": 1774377996.063234
+  "timestamp": 1774378051.958912
 }

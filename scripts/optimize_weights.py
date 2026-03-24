@@ -25,7 +25,7 @@ YEARS = [2015, 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025]
 MODE_CONFIGS = {
     "average": {
         "total_iterations": 100000,
-        "sample_count": 500, # V5.6.1: Balanced precision for faster discovery velocity
+        "sample_count": 150,
         "snapback_interval": 15000
     },
     "balanced": {
@@ -431,7 +431,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, choices=["balanced", "average", "perfect"], default="balanced")
     parser.add_argument("--jitter-scale", type=float, default=1.0)
-    parser.add_argument("--iterations", type=int)
+    # parser.add_argument("--iterations", type=int) # Removed to ensure rigid topology
     parser.add_argument("--load-state", type=str)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--restart", action="store_true")
@@ -446,7 +446,7 @@ if __name__ == "__main__":
         optimize_simulated_annealing(
             mode=args.mode, 
             jitter_scale=args.jitter_scale,
-            iterations=args.iterations,
+            iterations=None, # Use rigid MODE_CONFIGS
             load_state=args.load_state,
             resume=args.resume,
             restart=args.restart

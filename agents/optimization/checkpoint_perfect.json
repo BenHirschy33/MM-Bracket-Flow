@@ -1,5 +1,5 @@
 {
-  "pid": 79299,
+  "pid": 80075,
   "mode": "perfect",
   "current_weights": {
     "base_volatility": 0.06117757286833733,
@@ -273,11 +273,11 @@
     "kill_shot_momentum_weight": 0.010472494366033772,
     "chaos_mode": 0.44649115386442173
   },
-  "temperature": 17.250886214443046,
-  "total_iterations_run": 516,
+  "temperature": 21.51191458134609,
+  "total_iterations_run": 539,
   "best_fitness": 14721.73029883952,
   "best_espn_avg": 548.6868,
   "best_espn_max": 728.0,
   "best_accuracy": 0.43836,
-  "timestamp": 1774377692.3829498
+  "timestamp": 1774378051.959082
 }
