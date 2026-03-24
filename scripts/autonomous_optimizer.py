@@ -89,7 +89,6 @@ def run_mode_loop(mode, stop_event, iterations=1000000, load_state=None):
         try:
             logging.info(f"[{mode.upper()}] Starting sweep ({iterations} iterations, Jitter={jitter_scale:.2f})...")
             cmd = ["python3", "-u", "scripts/optimize_weights.py", "--iterations", str(iterations), "--jitter-scale", f"{jitter_scale:.4f}", "--mode", mode]
-            if "--restart" in sys.argv: cmd += ["--restart"]
             if load_state: cmd += ["--load-state", load_state]
             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             last_fitness = -1000000
@@ -191,23 +190,11 @@ def run_pipeline(stop_event):
     for t in threads: t.join()
     logging.info(f"🏆 PIPELINE COMPLETE. Total Time: {int(time.time() - start_time)}s")
 
-def run_sequence(stop_event):
-    """Runs each mode consecutively (Sequential Mode)."""
-    modes = ["balanced", "average", "perfect"]
-    for mode in modes:
-        if stop_event.is_set(): break
-        logging.info(f"🚀 SEQUENTIAL START: {mode.upper()}")
-        # Run a single batch for this mode (iterations=None uses optimize_weights.py defaults)
-        run_mode_loop(mode, stop_event, iterations=None)
-    logging.info("🏆 SEQUENTIAL RUN COMPLETE.")
-
 def main():
     stop_event = threading.Event()
     threading.Thread(target=heartbeat_monitor, args=(stop_event,), daemon=True).start()
     if "--pipeline" in sys.argv:
         run_pipeline(stop_event)
-    elif "--sequence" in sys.argv:
-        run_sequence(stop_event)
     else:
         for mode in ["balanced", "perfect", "average"]:
             threading.Thread(target=run_mode_loop, args=(mode, stop_event), daemon=True).start()

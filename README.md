@@ -4,25 +4,21 @@
 
 ---
 
-
 ## 🏔️ V5.7 Elite Optimization Marathon
 
 As of March 24, 2026, the engine has been upgraded to **V5.7 "Elite Maximization"** mode, featuring a triple-lock discovery architecture.
 
 ### 🎯 1. Perfect Mode (Convex Power-Law)
-
 - **Math**: $s^8$ reward on top 1% outcomes ($1,000,000$ tail multiplier).
 - **Topology**: 500k iterations | **2,500 samples/year** | 50k snapback.
 - **Goal**: Targeted discovery of extreme high-scoring anomalies.
 
 ### ⚖️ 2. Balanced Mode (Hybrid Accuracy)
-
 - **Math**: Linear Log-Likelihood + $+10,000$ Accuracy bonus.
 - **Topology**: 250k iterations | **750 samples/year** | 25k snapback.
 - **Goal**: Strategic balance between points and the ultimate winner.
 
 ### 📈 3. Average Mode (Elite Cubic Upside)
-
 - **Math**: Uses a **Cubic Power-Law** fitness: `(Avg_Score ^ 3) / 1,000,000`.
 - **Topology**: 100k iterations | **150 samples/year** | 15k snapback.
 - **Goal**: Maximizing the "Greatest Average Overall". No cap or penalty for exceeding 1000 points.
@@ -32,31 +28,26 @@ As of March 24, 2026, the engine has been upgraded to **V5.7 "Elite Maximization
 ## 🏗 Architecture: Double-Hydration & Auto-Sync
 
 ### 🏆 Battle of the Titans (Startup Contest)
-
 The engine no longer trusts a single record on boot. It performs a **Double-Hydration benchmark**:
-
 1. Load `gold_standard.json` (Expert Baseline).
 2. Load `checkpoint.json` (Live Session Peak).
-3. **The Contest**: Whoever has the highest fitness under the current logic is promoted to "Current Best."
+3. **The Contest**: Whoever has the highest fitness under the current logic is promoted to "Current Best." 
 4. **Benefit**: Hand-tuned brilliance is never overwritten by stale session data.
 
 ### ✨ Master Gold Standard Auto-Sync
-
-The bridge between discovery and production is now automated. Every time a **NEW BEST** is found in any mode, the script instantly updates the master `agents/optimization/gold_standard.json` file.
+The bridge between discovery and production is now automated. Every time a **NEW BEST** is found in any mode, the script instantly updates the master `agents/optimization/gold_standard.json` file. 
 
 ---
 
 ## 🛠 Operation & Maintenance
 
 ### Starting / Resuming the Marathon
-
 ```bash
 # Authoritative Resume (Contest + Snapback + 1.25x Re-heat)
 python3 scripts/optimize_weights.py --mode average --resume > agents/optimization/refine_average.log 2>&1 &
 ```
 
 ### Starting From Scratch (Wipe Checkpoints)
-
 ```bash
 # Ignores checkpoints and forces a fresh start from the Gold Standard baseline
 python3 scripts/optimize_weights.py --mode average --restart > agents/optimization/refine_average.log 2>&1 &
@@ -79,27 +70,4 @@ tail -f agents/optimization/refine_*.log
 
 ---
 
-
-## 🚀 Optimization Run (March 24, 2026)
-
-A dedicated optimization run has been initiated on the `optimization-run` branch. This run focuses on:
-
-- **Balanced**: Tuning for overall accuracy and log-likelihood.
-- **Average**: Maximizing total ESPN score potential.
-- **Perfect**: Discovering extreme upside via convex power-law rewards.
-
-To start the marathon from scratch:
-
-```bash
-python3 scripts/autonomous_optimizer.py --restart
-```
-
-To monitor all three modes:
-
-```bash
-tail -f agents/optimization/autonomous_optimizer_*.log
-```
-
----
-
-*Verified for the 2026 Tournament Cycle. V5.8 Marathon Architecture deployed March 24, 2026.*
+*Verified for the 2026 Tournament Cycle. V5 Marathon Architecture deployed March 24, 2026.*
