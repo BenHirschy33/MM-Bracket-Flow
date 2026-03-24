@@ -42,18 +42,21 @@ The bridge between discovery and production is now automated. Every time a **NEW
 ## 🛠 Operation & Maintenance
 
 ### Starting / Resuming the Marathon
-```bash
-# Authoritative Resume (Contest + Snapback + 1.25x Re-heat)
-python3 scripts/optimize_weights.py --mode average --resume > agents/optimization/refine_average.log 2>&1 &
-```
 
-### Starting From Scratch (Wipe Checkpoints)
+To start all three modes simultaneously in the background:
+
 ```bash
-# Ignores checkpoints and forces a fresh start from the Gold Standard baseline
-python3 scripts/optimize_weights.py --mode average --restart > agents/optimization/refine_average.log 2>&1 &
+python3 scripts/optimize_weights.py --mode average --resume > agents/optimization/refine_average.log 2>&1 & \
+python3 scripts/optimize_weights.py --mode balanced --resume > agents/optimization/refine_balanced.log 2>&1 & \
+python3 scripts/optimize_weights.py --mode perfect --resume > agents/optimization/refine_perfect.log 2>&1 &
 ```
 
 ### Monitoring Progress
+
+```bash
+# Follow the live discovery of new peaks
+tail -f agents/optimization/refine_*.log
+```
 
 ```bash
 # Follow the live discovery of new peaks
