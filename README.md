@@ -4,51 +4,53 @@
 
 ---
 
-## 🏔️ V5 Optimization Marathon (The Sweet 16 Phase)
+## 🏔️ V5.7 Elite Optimization Marathon
 
-As of late March 2026, the engine is running 3 parallel "souls" in a continuous refinement marathon.
+As of March 24, 2026, the engine has been upgraded to **V5.7 "Elite Maximization"** mode, featuring a triple-lock discovery architecture.
 
 ### 🎯 1. Perfect Mode (Convex Power-Law)
-
-- **Math**: Uses a hyper-convex $s^8$ reward function on the top 1% of simulated outcomes.
-- **Goal**: Specifically targets 1-in-9 quintillion anomalies by creating a massive "gravity well" around 1800+ point outliers.
-- **Behavior**: Will often prefer high-variance upsets that safe models ignore.
+- **Math**: $s^8$ reward on top 1% outcomes ($1,000,000$ tail multiplier).
+- **Topology**: 500k iterations | **2,500 samples/year** | 50k snapback.
+- **Goal**: Targeted discovery of extreme high-scoring anomalies.
 
 ### ⚖️ 2. Balanced Mode (Hybrid Accuracy)
+- **Math**: Linear Log-Likelihood + $+10,000$ Accuracy bonus.
+- **Topology**: 250k iterations | **750 samples/year** | 25k snapback.
+- **Goal**: Strategic balance between points and the ultimate winner.
 
-- **Goal**: A strategic mix of total points and bracket accuracy. Uses a linear accuracy reward ($+10,000$) to favor winners of the Championship game.
-
-### 📈 3. Average Mode (Shadow Floor)
-
-- **Goal**: Maximizing the expected points floor. Uses a **3.0x multiplier** on `ESPN_Avg` to ensure stability in standard scoring pools.
+### 📈 3. Average Mode (Elite Cubic Upside)
+- **Math**: Uses a **Cubic Power-Law** fitness: `(Avg_Score ^ 3) / 1,000,000`.
+- **Topology**: 100k iterations | **150 samples/year** | 15k snapback.
+- **Goal**: Maximizing the "Greatest Average Overall". No cap or penalty for exceeding 1000 points.
 
 ---
 
-## 🏗 Architecture: Shadow Scoring & Resumability
+## 🏗 Architecture: Double-Hydration & Auto-Sync
 
-### Shadow Scoring Dashboard
+### 🏆 Battle of the Titans (Startup Contest)
+The engine no longer trusts a single record on boot. It performs a **Double-Hydration benchmark**:
+1. Load `gold_standard.json` (Expert Baseline).
+2. Load `checkpoint.json` (Live Session Peak).
+3. **The Contest**: Whoever has the highest fitness under the current logic is promoted to "Current Best." 
+4. **Benefit**: Hand-tuned brilliance is never overwritten by stale session data.
 
-Terminal logs (and `agents/optimization/refine_*.log`) display the "Triple-Metric" dashboard:
-`SA_Fit` (Internal discovery reward) -> `ESPN_Avg` (Points floor) -> `ESPN_Max` (Peak potential) -> `T` (Temp) -> `J` (Jitter)
-
-### Resumable State Machine (V5)
-
-The engine is **indestructible** and **autonomous**:
-- **Zombie Protection**: On startup, it automatically clears stale PIDs from previous crashed sessions.
-- **Checkpointing**: State is saved every 100 iterations AND on every "NEW BEST" discovery.
-- **Thermal Re-heating**: Resuming a process adds a **1.25x temperature boost** to encourage exploration of new territory.
+### ✨ Master Gold Standard Auto-Sync
+The bridge between discovery and production is now automated. Every time a **NEW BEST** is found in any mode, the script instantly updates the master `agents/optimization/gold_standard.json` file. 
 
 ---
 
 ## 🛠 Operation & Maintenance
 
 ### Starting / Resuming the Marathon
-
 ```bash
-# Authoritative Resume command (clears zombies and picks up from checkpoints)
+# Authoritative Resume (Contest + Snapback + 1.25x Re-heat)
 python3 scripts/optimize_weights.py --mode average --resume > agents/optimization/refine_average.log 2>&1 &
-python3 scripts/optimize_weights.py --mode balanced --resume > agents/optimization/refine_balanced.log 2>&1 &
-python3 scripts/optimize_weights.py --mode perfect --resume > agents/optimization/refine_perfect.log 2>&1 &
+```
+
+### Starting From Scratch (Wipe Checkpoints)
+```bash
+# Ignores checkpoints and forces a fresh start from the Gold Standard baseline
+python3 scripts/optimize_weights.py --mode average --restart > agents/optimization/refine_average.log 2>&1 &
 ```
 
 ### Monitoring Progress
