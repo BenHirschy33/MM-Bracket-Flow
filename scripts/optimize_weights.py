@@ -26,17 +26,20 @@ MODE_CONFIGS = {
     "average": {
         "total_iterations": 100000,
         "sample_count": 150,
-        "snapback_interval": 15000
+        "snapback_interval": 15000,
+        "heartbeat": 1000
     },
     "balanced": {
         "total_iterations": 250000,
         "sample_count": 750,
-        "snapback_interval": 25000
+        "snapback_interval": 25000,
+        "heartbeat": 250
     },
     "perfect": {
         "total_iterations": 500000,
         "sample_count": 2500,
-        "snapback_interval": 50000
+        "snapback_interval": 50000,
+        "heartbeat": 100
     }
 }
 
@@ -160,6 +163,16 @@ def cross_validate_weights(weights: SimulationWeights, mode: str = "balanced", s
         "accuracy": avg_accuracy
     }
 
+def print_progress(mode, label, i, iterations, start_iter, start_time, fitness, avg, peak):
+    """Unified progress formatter for heartbeats and new bests."""
+    percent = ((i - start_iter + 1) / max(1, iterations - start_iter)) * 100
+    elapsed = time.time() - start_time
+    iter_rate = (i - start_iter + 1) / max(0.1, elapsed)
+    eta_seconds = (iterations - i) / max(0.01, iter_rate)
+    h_eta = int(eta_seconds // 3600); m_eta = int((eta_seconds % 3600) // 60)
+    timestamp = time.strftime("%H:%M:%S")
+    print(f"[{timestamp}] [{mode.upper()}] [{i+1}/{iterations}] ({percent:.1f}%) ETA: {h_eta}h {m_eta}m | {label} | Fit: {fitness:.2f} | Avg: {avg:.2f} | Max: {peak:.2f}", flush=True)
+
 def optimize_simulated_annealing(mode="balanced", jitter_scale=1.0, iterations=None, load_state=None, resume=False, restart=False):
     """
     Resumable State Machine Optimizer V5 (Hardcoded Profiles).
@@ -173,6 +186,7 @@ def optimize_simulated_annealing(mode="balanced", jitter_scale=1.0, iterations=N
         iterations = config["total_iterations"]
     samples = config["sample_count"]
     snapback_interval = config["snapback_interval"]
+    heartbeat_interval = config["heartbeat"]
 
     start_time = time.time()
     state_mgr = StateManager(mode)
@@ -193,9 +207,15 @@ def optimize_simulated_annealing(mode="balanced", jitter_scale=1.0, iterations=N
                 ui_key = {"balanced": "max_balanced", "perfect": "max_perfect", "average": "max_avg"}.get(mode)
                 if ui_key in gold_data and "weights" in gold_data[ui_key]:
                     gold_weights = SimulationWeights(**gold_data[ui_key]["weights"])
-                    res = cross_validate_weights(gold_weights, mode=mode, samples=samples)
-                    gold_fitness = res["sa_fitness"]
-                    logging.info(f"🏆 [{mode.upper()}] Gold Standard Baseline: {gold_fitness:.2f}")
+                    # OPTIMIZATION: Use recorded fitness if available to skip 45min re-validation
+                    gold_fitness = gold_data[ui_key].get("meta", {}).get("fitness", -1e9)
+                    
+                    if gold_fitness == -1e9:
+                        print(f"🔍 [{mode.upper()}] No recorded baseline. Validating Gold Standard...", flush=True)
+                        res = cross_validate_weights(gold_weights, mode=mode, samples=samples)
+                        gold_fitness = res["sa_fitness"]
+                    
+                    print(f"🏆 [{mode.upper()}] Gold Standard Baseline: {gold_fitness:.2f}", flush=True)
         except Exception as e:
             logging.error(f"Gold load failed: {e}")
 
@@ -208,11 +228,11 @@ def optimize_simulated_annealing(mode="balanced", jitter_scale=1.0, iterations=N
         chk_weights = SimulationWeights(**checkpoint["best_weights"])
         # We don't re-run CV here, we trust the checkpoint's recorded fitness
         chk_fitness = checkpoint.get("best_fitness", -1e9)
-        logging.info(f"🦾 [{mode.upper()}] Checkpoint Record: {chk_fitness:.2f}")
+        print(f"🦾 [{mode.upper()}] Checkpoint Record: {chk_fitness:.2f}", flush=True)
 
     # 3. THE DOUBLE-HYDRATION CONTEST (Winner becomes Start State)
     if chk_weights and chk_fitness > gold_fitness:
-        logging.info(f"🔥 [{mode.upper()}] Checkpoint wins the contest. Resuming from Iter {checkpoint['total_iterations_run']}")
+        print(f"🔥 [{mode.upper()}] Checkpoint wins the contest. Resuming from Iter {checkpoint['total_iterations_run']}", flush=True)
         best_weights = chk_weights
         best_fitness = chk_fitness
         best_avg = checkpoint.get("best_espn_avg", 0)
@@ -222,7 +242,7 @@ def optimize_simulated_annealing(mode="balanced", jitter_scale=1.0, iterations=N
         temp_sa = checkpoint["temperature"] * 1.25 # Thermal Re-heat
     else:
         winner_source = "Gold Standard" if gold_fitness > -1e9 else "Default"
-        logging.info(f"⭐ [{mode.upper()}] {winner_source} wins (or is the only choice). Starting Fresh @ Peak.")
+        print(f"⭐ [{mode.upper()}] {winner_source} wins (or is the only choice). Starting Fresh @ Peak.", flush=True)
         best_weights = gold_weights
         best_fitness = gold_fitness if gold_fitness > -1e9 else 0
         # Re-run result extraction for full metrics if Gold won
@@ -252,11 +272,11 @@ def optimize_simulated_annealing(mode="balanced", jitter_scale=1.0, iterations=N
     
     label = "Tail Multiplier" if mode == "perfect" else "Acc Reward"
     
-    print(f"\n[{timestamp}] 🚀 {start_type}: {focus_str}")
-    print(f"W: 2015-2025 | I: {iterations} | S/year: {samples} | Snapback: {snapback_interval}")
-    print(f"T (Start): {temp_sa:.4f} | Jitter: {eff_jitter:.1f}x | {label}: {acc_reward:,} | Alpha: 0.9999")
-    print(f"Initial - Fit: {current_fitness:.2f} | ESPN_Avg: {current_avg:.2f} | ESPN_Max: {current_max:.2f} | Champ: {current_acc*100:.2f}%")
-    print("===============================================================================\n")
+    print(f"\n[{timestamp}] 🚀 {start_type}: {focus_str}", flush=True)
+    print(f"W: 2015-2025 | I: {iterations} | S/year: {samples} | Snapback: {snapback_interval}", flush=True)
+    print(f"T (Start): {temp_sa:.4f} | Jitter: {eff_jitter:.1f}x | {label}: {acc_reward:,} | Alpha: 0.9999", flush=True)
+    print(f"Initial - Fit: {current_fitness:.2f} | ESPN_Avg: {current_avg:.2f} | ESPN_Max: {current_max:.2f} | Champ: {current_acc*100:.2f}%", flush=True)
+    print("===============================================================================\n", flush=True)
 
     # Signal handling for graceful exit
     def signal_handler(sig, frame):
@@ -323,15 +343,7 @@ def optimize_simulated_annealing(mode="balanced", jitter_scale=1.0, iterations=N
                     best_max = new_max
                     last_best_iteration = i
                     
-                    # LOGGING CALCULATION
-                    percent = ((i - start_iter + 1) / max(1, iterations - start_iter)) * 100
-                    elapsed = time.time() - start_time
-                    iter_rate = (i - start_iter + 1) / max(0.1, elapsed)
-                    eta_seconds = (iterations - i) / max(0.01, iter_rate)
-                    h_eta = int(eta_seconds // 3600); m_eta = int((eta_seconds % 3600) // 60)
-                    timestamp = time.strftime("%H:%M:%S")
-                    
-                    print(f"[{timestamp}] [{mode.upper()}] [{i+1}/{iterations}] ({percent:.1f}%) ETA: {h_eta}h {m_eta}m | ⭐ NEW BEST! | Fit: {best_fitness:.2f} | Avg: {best_avg:.2f} | Max: {best_max:.2f} | Temp: {effective_temp:.4f} | Jitter: {effective_jitter:.1f}x", flush=True)
+                    print_progress(mode, "⭐ NEW BEST!", i, iterations, start_iter, start_time, best_fitness, best_avg, best_max)
                     # For Perfect mode, emphasize if we hit a serious tail
                     if mode == "perfect" and best_max > 1000:
                         print(f"  >>> 🔥 HIGH-VALUE TAIL DISCOVERED! Peak: {best_max:.0f}/1920", flush=True)
@@ -347,8 +359,8 @@ def optimize_simulated_annealing(mode="balanced", jitter_scale=1.0, iterations=N
                     current_weights = new_weights
                     current_fitness = new_fitness
             
-            # Checkpoint every 100 iterations
-            if i % 100 == 0:
+            # Checkpoint every 100 iterations or on heartbeat
+            if i % 100 == 0 or i % heartbeat_interval == 0:
                 best_metrics = {"sa_fitness": best_fitness, "espn_average": best_avg, "espn_max": best_max, "accuracy": best_acc}
                 state_mgr.save(current_weights, best_weights, temp_sa, i, best_metrics)
 
@@ -366,14 +378,8 @@ def optimize_simulated_annealing(mode="balanced", jitter_scale=1.0, iterations=N
                 print(f"[{timestamp}] 🦾 [{mode.upper()}] [{i+1}] SNAPBACK (SA_Fit: {best_fitness:.2f})", flush=True)
 
             # HEARTBEAT (User-Requested Format)
-            if i % 1000 == 0:
-                percent = ((i - start_iter + 1) / max(1, iterations - start_iter)) * 100
-                elapsed = time.time() - start_time
-                iter_rate = (i - start_iter + 1) / max(0.1, elapsed)
-                eta_seconds = (iterations - i) / max(0.01, iter_rate)
-                h_eta = int(eta_seconds // 3600); m_eta = int((eta_seconds % 3600) // 60)
-                timestamp = time.strftime("%H:%M:%S")
-                print(f"[{timestamp}] [{mode.upper()}] [{i+1}/{iterations}] ({percent:.1f}%) ETA: {h_eta}h {m_eta}m | HEARTBEAT | Fit: {best_fitness:.2f} | Avg: {best_avg:.2f} | Max: {best_max:.2f} | Temp: {effective_temp:.4f} | Jitter: {effective_jitter:.1f}x", flush=True)
+            if i % heartbeat_interval == 0:
+                print_progress(mode, "HEARTBEAT", i, iterations, start_iter, start_time, best_fitness, best_avg, best_max)
 
         # Only cleanup if we finish all iterations naturally (Phase 37)
         state_mgr.cleanup()
@@ -422,7 +428,7 @@ def save_weights(weights, fitness, avg, acc, peak, mode="unknown"):
                 }
                 with open(gold_path, "w") as f:
                     json.dump(gold_data, f, indent=2)
-                logging.info(f"✨ [{mode.upper()}] Master Gold Standard Synchronized.")
+                # logging.info(f"✨ [{mode.upper()}] Master Gold Standard Synchronized.")
 
     except Exception as e:
         logging.error(f"Save failed: {e}")
@@ -440,7 +446,8 @@ if __name__ == "__main__":
     
     if args.dry_run:
         config = MODE_CONFIGS[args.mode]
-        fit, avg, acc = cross_validate_weights(SimulationWeights(), mode=args.mode, samples=config["sample_count"])
+        res = cross_validate_weights(SimulationWeights(), mode=args.mode, samples=config["sample_count"])
+        fit, avg, acc = res["sa_fitness"], res["espn_average"], res["accuracy"]
         print(f"Baseline Fitness: {fit:.2f} | Avg: {avg:.2f} | Champ: {acc*100:.1f}%")
     else:
         optimize_simulated_annealing(
